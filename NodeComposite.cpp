@@ -615,13 +615,13 @@ void NodeComposite::SetValue(GeoGraphObject* objPtr, double value)
 	if(n)
 		n->value = value;
 }
-void NodeComposite::SetValue(GeoGraphObject* objPtr, fxy f)
+void NodeComposite::SetValue(GeoGraphObject* objPtr, function<double(const Vector3D& P)> f)
 {
 	Node* n = objPtr ? this->GetNode(objPtr) : 0;
 	if (n)
 	{
 		Vector3D P = n->GetPoint();
-		n->value = f(P(0),P(1));
+		n->value = f(P);
 	}
 }
 void NodeComposite::SetConstantValue(GeoGraphObject* objPtr, double value)
@@ -629,23 +629,23 @@ void NodeComposite::SetConstantValue(GeoGraphObject* objPtr, double value)
 	this->constValues[objPtr] = value;
 	this->SetValue(objPtr, value);
 }
-void NodeComposite::SetConstantValue(GeoGraphObject* objPtr, fxy f)
+void NodeComposite::SetConstantValue(GeoGraphObject* objPtr, function<double(const Vector3D& P)> f)
 {
 	Vector3D P = objPtr->GetPoint();
-	double value = f(P(0), P(1));
+	double value = f(P);
 	this->SetConstantValue(objPtr, value);
 }
 void NodeComposite::SetConstantNormalGradient(GeoGraphObject* objPtr, double value)
 {
 	this->constNormalGrad[objPtr] = value;
 }
-void NodeComposite::SetConstantNormalGradient(GeoGraphObject* objPtr, fxy f)
+void NodeComposite::SetConstantNormalGradient(GeoGraphObject* objPtr, function<double(const Vector3D& P)> f)
 {
 	Vector3D P = objPtr->GetPoint();
-	double value = f(P(0), P(1));
+	double value = f(P);
 	this->SetConstantNormalGradient(objPtr, value);
 }
-void NodeComposite::SetValueAllNodes(fxy f)
+void NodeComposite::SetValueAllNodes(function<double(const Vector3D& P)> f)
 {
 	VertexIterator itv(this->qe);
 	Vertex* v = itv.Next();
@@ -653,7 +653,7 @@ void NodeComposite::SetValueAllNodes(fxy f)
 		Node* n = this->GetNode(v);
 		if (n) {
 			Vector3D P = n->GetPoint();
-			double val = f(P(0), P(1));
+			double val = f(P);
 			n->value = val;
 		}
 		v = itv.Next();

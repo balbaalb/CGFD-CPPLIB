@@ -14,6 +14,7 @@
 #include "Face.h"
 #include "Edge.h"
 #include "ShapeFunction.h"
+#include "ConductionConvectionProblem.h"
 double FVM_Grid::alpha_p = 0.3;
 double FVM_Grid::alpha_v = 0.3;
 double FVM_Grid::ConvergenceTolVx = 1.0e-6;
@@ -419,7 +420,7 @@ void FVM_Grid::SolveSIMPLE_CorrectV()
 	this->VxNodes.ApplyBC();
 	this->VyNodes.ApplyBC();
 }
-void FVM_Grid::SetThermalBoundaryConditions_internal(fxy BC, GRID_DIRECTION side, string type)
+void FVM_Grid::SetThermalBoundaryConditions_internal(function<double(const Vector3D& P)> BC, GRID_DIRECTION side, string type)
 {
 	Face* fb = this->grid->GetBoundary();
 	EdgeIterator ite(fb);
@@ -430,26 +431,14 @@ void FVM_Grid::SetThermalBoundaryConditions_internal(fxy BC, GRID_DIRECTION side
 		if (side == GRID_DIRECTION::ANY_BOUNDARY || this->grid->IsBoundary(e, side))
 		{
 			Vector3D P = (e->GetOrig()->GetPoint() + e->GetDest()->GetPoint()) / 2.0;
-			double T = (*BC)(P(0), P(1));
-			if(type == "Drichlit")
+			double T = BC(P);
+			if (type == "Drichlit")
 				this->TNodes.SetConstantValue(e, T);
-			else if(type == "Neumann")
+			else if (type == "Neumann")
 				this->TNodes.SetConstantNormalGradient(e, T);
 		}
 		e = ite.Next();
 	}
-}
-double FVM_Grid::RBC_initial_u(double x, double y)
-{
-	return x * (Lx - x) * y * (Ly - y) * sin(pi * y/Ly - 0.5);
-}
-double FVM_Grid::RBC_initial_v(double x, double y)
-{
-	return x * (Lx - x) * y * (Ly - y) * sin(pi * x/Lx - 0.5);
-}
-double FVM_Grid::RBC_initial_T(double x, double y)
-{
-	return x * (Lx - x) * y * (Ly - y) * sin(0.5 - pi * y / Ly);
 }
 FVM_Grid::FVM_Grid(const bGrid& G)
 {
@@ -489,10 +478,10 @@ void FVM_Grid::SetThermalConductionConvectionProblem(double conductivity, double
 	this->TNodes.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY);
 	this->TNodes.InitializeEquations();
 }
-void FVM_Grid::SetThermalConductionConvectionProblem(double conductivity, double Density, velocityField Velocity)
+void FVM_Grid::SetThermalConductionConvectionProblem(double conductivity, double Density, function<double(const Vector3D& P)> Velocity[2])
 {
 	QuadEdge* qe = this->grid->GetMesh2D();
-	Face* fb = this->grid->GetBoundary(); 
+	Face* fb = this->grid->GetBoundary();
 	this->VxNodes.Initialize(qe, fb, NODE_COMPOSITE_TYPE::EDGES);
 	this->VyNodes.Initialize(qe, fb, NODE_COMPOSITE_TYPE::EDGES);
 	EdgeIterator ite(qe);
@@ -569,15 +558,18 @@ void FVM_Grid::SetFlowNaturalConvectionProblem(double Ra, double Pr)
 	this->dValue.rehash(qe->NumEdges());
 	this->TNodes.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY);
 	this->TNodes.InitializeEquations();
-	this->VxNodes.SetValueAllNodes(FVM_Grid::RBC_initial_u);
-	this->VyNodes.SetValueAllNodes(FVM_Grid::RBC_initial_v);
-	this->TNodes.SetValueAllNodes(FVM_Grid::RBC_initial_T);
+	auto RBC_initial_u = [](const Vector3D& P) {double x{ P(0) }, y{ P(1) }; return x * (Lx - x) * y * (Ly - y) * sin(pi * y / Ly - 0.5); };
+	auto RBC_initial_v = [](const Vector3D& P) {double x{ P(0) }, y{ P(1) }; return x * (Lx - x) * y * (Ly - y) * sin(pi * x / Lx - 0.5); };
+	auto RBC_initial_T = [](const Vector3D& P) {double x{ P(0) }, y{ P(1) }; return x * (Lx - x) * y * (Ly - y) * sin(0.5 - pi * y / Ly); };
+	this->VxNodes.SetValueAllNodes(RBC_initial_u);
+	this->VyNodes.SetValueAllNodes(RBC_initial_v);
+	this->TNodes.SetValueAllNodes(RBC_initial_T);
 }
-void FVM_Grid::SetThermalBoundaryConditions(fxy BC, GRID_DIRECTION side)
+void FVM_Grid::SetThermalBoundaryConditions(function<double(const Vector3D& P)> BC, GRID_DIRECTION side)
 {
 	this->SetThermalBoundaryConditions_internal(BC, side, "Drichlit");
 }
-void FVM_Grid::SetThermalGradientBoundaryConditions(fxy BC, GRID_DIRECTION side)
+void FVM_Grid::SetThermalGradientBoundaryConditions(function<double(const Vector3D& P)> BC, GRID_DIRECTION side)
 {
 	this->SetThermalBoundaryConditions_internal(BC, side, "Neumann");
 }
@@ -764,14 +756,6 @@ void FVM_Grid::SolveSIMPLE(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& 
 }
 void FVM_Grid::printEquations(string fileName, int iterNum)
 {
-	/*ofstream fout;
-	fout.open(fileName.c_str(), fstream::app);
-	fout << endl << "===========================================================";
-	fout << endl << "Iteration #" << iterNum;
-	this->VxNodes.PrintEquations(fout, "Vx");
-	this->VyNodes.PrintEquations(fout, "Vy");
-	this->PNodes.PrintEquations(fout, "P");
-	fout.close();*/
 	cout << endl << "Iter #" << iterNum;
 	cout << ", Convergence(Vx,Vy,P) = (" << this->ConvergedVx << ", ";
 	cout << this->ConvergedVy << ", " << this->ConvergedP << ")";
@@ -811,11 +795,12 @@ bool tester_FVM_Grid_1(int& NumTests)
 {
 	double Lx = 2, Ly = 2, T0 = 1.0, T1 = 10;
 	double k = 1.0;
-	testerFVM1::Set(Lx, Ly, T0, T1);
+	ConductionExample cond(Lx, Ly, T0, T1);
 	bGrid G(1, 1, Lx, Ly);
 	FVM_Grid fvm(G);
 	fvm.SetThermalConductionProblem(k);
-	fvm.SetThermalBoundaryConditions(&testerFVM1::value);
+	auto temperatureField = [cond](const Vector3D& P) {return cond.T(P); };
+	fvm.SetThermalBoundaryConditions(temperatureField);
 	vector<Node*> results;
 	fvm.SolveThermalProblem(results);
 	double max_abs_error = 0;
@@ -824,9 +809,7 @@ bool tester_FVM_Grid_1(int& NumTests)
 	{
 		double T = results[i]->value;
 		Vector3D P = results[i]->GetPoint();
-		double x = P(0);
-		double y = P(1);
-		double T_actual = testerFVM1::value(x, y);
+		double T_actual = cond.T(P);
 		double abs_error = fabs(T - T_actual);
 		double error_percent = T_actual != 0 ? fabs(T - T_actual) / T_actual * 100 : fabs(T - T_actual) / T0 * 100;
 		if (abs_error > max_abs_error)
@@ -843,11 +826,12 @@ bool tester_FVM_Grid_2(int& NumTests)
 {
 	double Lx = 2, Ly = 2, T0 = 1.0, T1 = 10;
 	double k = 1.0;
-	testerFVM1::Set(Lx, Ly, T0, T1);
+	ConductionExample cond(Lx, Ly, T0, T1);
 	bGrid G(10, 10, Lx, Ly);
 	FVM_Grid fvm(G);
 	fvm.SetThermalConductionProblem(k);
-	fvm.SetThermalBoundaryConditions(&testerFVM1::value);
+	auto temperatureField = [cond](const Vector3D& P) {return cond.T(P); };
+	fvm.SetThermalBoundaryConditions(temperatureField);
 	vector<Node*> results;
 	fvm.SolveThermalProblem(results);
 	double max_abs_error = 0;
@@ -856,9 +840,7 @@ bool tester_FVM_Grid_2(int& NumTests)
 	{
 		double T = results[i]->value;
 		Vector3D P = results[i]->GetPoint();
-		double x = P(0);
-		double y = P(1);
-		double T_actual = testerFVM1::value(x, y);
+		double T_actual = cond.T(P);
 		double abs_error = fabs(T - T_actual);
 		double error_percent = T_actual != 0 ? fabs(T - T_actual) / T_actual * 100 : fabs(T - T_actual) / T0 * 100;
 		if (abs_error > max_abs_error)
@@ -880,15 +862,16 @@ bool tester_FVM_Grid_3(int& NumTests)
 	double rho = 1.0;
 	double vx = 1.5, vy = 2.5, T0 = 1.0, T1 = 1;
 	double kapa = k / rho;
-	testerFVM3::Set(T0, T1, vx, vy, Lx, Ly, kapa);
-	velocityField V;
-	V[0] = testerFVM3::Vx;
-	V[1] = testerFVM3::Vy;
+	convectionConstVelocity conv(T0, T1, vx, vy, Lx, Ly, kapa);
 	bGrid G(N, N, Lx, Ly);
 	G.GetMesh2D()->print("..\\Data\\tester_FVM_Grid_3.Grid.txt");
 	FVM_Grid fvm(G);
+	function<double(const Vector3D& P)> V[2];
+	V[0] = [conv](const Vector3D& P) {return conv.vx(P); };
+	V[1] = [conv](const Vector3D& P) {return conv.vy(P); };
 	fvm.SetThermalConductionConvectionProblem(k, rho, V);
-	fvm.SetThermalBoundaryConditions(&testerFVM3::value);
+	auto temperatureField = [conv](const Vector3D& P) {return conv.T(P); };
+	fvm.SetThermalBoundaryConditions(temperatureField);
 	vector<Node*> results;
 	fvm.SolveThermalProblem(results);
 	double max_abs_error = 0;
@@ -896,9 +879,7 @@ bool tester_FVM_Grid_3(int& NumTests)
 	for (int i = 0; i < results.size(); ++i)
 	{
 		double T = results[i]->value;
-		double x = results[i]->GetPoint()(0);
-		double y = results[i]->GetPoint()(1);
-		double T_actual = testerFVM3::value(x, y);
+		double T_actual = conv.T(results[i]->GetPoint());
 		double abs_error = fabs(T - T_actual);
 		double error_percent = T_actual != 0 ? fabs(T - T_actual) / T_actual * 100 : fabs(T - T_actual) / T0 * 100;
 		if (abs_error > max_abs_error)
@@ -915,20 +896,20 @@ bool tester_FVM_Grid_3(int& NumTests)
 }
 bool tester_FVM_Grid_7(int& NumTests)
 {
-	testerFVM7::Lx = 1.0;
-	testerFVM7::Ly = 1.0;
-	testerFVM7::density = 1;
-	testerFVM7::viscosity = 1.0;
-	testerFVM7::VLid = 1;
-	testerFVM7::Nx = 6;
-	testerFVM7::Ny = 6;
+	double Lx = 1.0;
+	double Ly = 1.0;
+	double density = 1;
+	double viscosity = 1.0;
+	double VLid = 1;
+	int Nx = 6;
+	int Ny = 6;
 	int maxIter = 1000;
 	BoundaryValues VBx(0), VBy(0);
-	*VBx.boundaryValue[NORTH] = testerFVM7::VLid;
+	*VBx.boundaryValue[NORTH] = VLid;
 	LiquidProperties liq;
-	liq.density = testerFVM7::density;
-	liq.viscosity = testerFVM7::viscosity;
-	bGrid G(testerFVM7::Nx, testerFVM7::Ny, testerFVM7::Lx, testerFVM7::Ly);
+	liq.density = density;
+	liq.viscosity = viscosity;
+	bGrid G(Nx, Ny, Lx, Ly);
 	G.GetMesh2D()->print("..\\Data\\tester_FVM_Grid_7.Grid.txt");
 	FVM_Grid::alpha_p = 0.3;
 	FVM_Grid::alpha_v = 0.3;
@@ -977,7 +958,7 @@ bool tester_FVM_Grid_7(int& NumTests)
 	double dP_max = Pmax - Pmin;
 	double dP_max_ANSYS = 22.73;//Value from ANSYS Fluent , SIMPLE, linear, 6x6 mesh
 	double dP_max_error = fabs(dP_max - dP_max_ANSYS) / dP_max_ANSYS * 100;
-	if (testerFVM7::Nx >= 6 && testerFVM7::Ny >= 6 && dP_max_error > 9)
+	if (Nx >= 6 && Ny >= 6 && dP_max_error > 9)
 		return false;
 	double Umin_ANSYS = -0.1455;
 	double Umin_error = fabs((Umin - Umin_ANSYS) / Umin_ANSYS) * 100.0;
@@ -985,7 +966,7 @@ bool tester_FVM_Grid_7(int& NumTests)
 	double Vmin_error = fabs((Vmin - Vmin_ANSYS) / Vmin_ANSYS) * 100.0;
 	double Vmax_ANSYS = 0.2007;
 	double Vmax_error = fabs((Vmax - Vmax_ANSYS) / Vmax_ANSYS) * 100.0;
-	if (testerFVM7::Nx >= 6 && testerFVM7::Ny >= 6)
+	if (Nx >= 6 && Ny >= 6)
 	{
 		if (Umin_error > 14 || Vmin_error > 12 || Vmax_error > 12)
 			return false;
@@ -998,16 +979,18 @@ bool tester_FVM_Grid_7(int& NumTests)
 }
 bool tester_FVM_Grid_9(int& NumTests)
 {
-	testerFVM9 test9;
-	test9.Re = 100;
-	test9.Pe = test9.Re;
-	test9.Nx = 6;
-	test9.Ny = 6;
+	//testerFVM9 test9;
+	double Re = 100;
+	double Pe = Re;
+	int Nx = 6;
+	int Ny = 6;
+	double Lx = 1.0;
+	double Ly = 1.0;
 	int maxIter = 1000;
 	BoundaryValues VBx(0), VBy(0), TB(0);
-	*VBx.boundaryValue[NORTH] = test9.VLid;
-	*TB.boundaryValue[NORTH] = test9.TLid;
-	bGrid G(test9.Nx, test9.Ny, test9.Lx, test9.Ly);
+	*VBx.boundaryValue[NORTH] = 1.0;
+	*TB.boundaryValue[NORTH] = 1.0;
+	bGrid G(Nx, Ny, Lx, Ly);
 	G.GetMesh2D()->print("..\\Data\\tester_FVM_Grid_7.Grid.txt");
 	FVM_Grid::alpha_p = 0.3;
 	FVM_Grid::alpha_v = 0.3;
@@ -1015,7 +998,7 @@ bool tester_FVM_Grid_9(int& NumTests)
 	FVM_Grid::ConvergenceTolVy = 1e-3;
 	FVM_Grid::ConvergenceTolP = 1e-3;
 	FVM_Grid fvm(G);
-	fvm.SetFlowForcedConvectionProblem(test9.Re, test9.Pe);
+	fvm.SetFlowForcedConvectionProblem(Re, Pe);
 	fvm.SetVelocityBoundaryConditions(VBx, VBy);
 	fvm.SetThermalBoundaryConditions(TB);
 	vector<Node*> Vx, Vy, P, T;
@@ -1111,14 +1094,17 @@ bool tester_FVM_Grid_11(int& NumTests)
 	double k = 1.0;
 	int Nx = 6;
 	int Ny = Nx;
-	testerFVM1::Set(Lx, Ly, T0, T1);
+	ConductionExample cond(Lx, Ly, T0, T1);
 	bGrid G(Nx, Ny, Lx, Ly);
 	FVM_Grid fvm(G);
 	fvm.SetThermalConductionProblem(k);
-	fvm.SetThermalBoundaryConditions(&testerFVM1::value, WEST);
-	fvm.SetThermalBoundaryConditions(&testerFVM1::value, SOUTH);
-	fvm.SetThermalGradientBoundaryConditions(&testerFVM1::DvalueDy, NORTH);
-	fvm.SetThermalGradientBoundaryConditions(&testerFVM1::DvalueDx, EAST);
+	auto lambdaBC = [&cond](const Vector3D& P) {return cond.T(P); };
+	auto lambdaBCx = [&cond](const Vector3D& P) {return cond.dT_dx(P); };
+	auto lambdaBCy = [&cond](const Vector3D& P) {return cond.dT_dy(P); };
+	fvm.SetThermalBoundaryConditions(lambdaBC, WEST);
+	fvm.SetThermalBoundaryConditions(lambdaBC, SOUTH);
+	fvm.SetThermalGradientBoundaryConditions(lambdaBCy, NORTH);
+	fvm.SetThermalGradientBoundaryConditions(lambdaBCx, EAST);
 	vector<Node*> results;
 	fvm.SolveThermalProblem(results);
 	fvm.printThermalEquations("..\\Data\\FVM_Grid.output.txt");
@@ -1128,9 +1114,7 @@ bool tester_FVM_Grid_11(int& NumTests)
 	{
 		double T = results[i]->value;
 		Vector3D P = results[i]->GetPoint();
-		double x = P(0);
-		double y = P(1);
-		double T_actual = testerFVM1::value(x, y);
+		double T_actual = cond.T(P);
 		double abs_error = fabs(T - T_actual);
 		double error_percent = T_actual != 0 ? fabs(T - T_actual) / T_actual * 100 : fabs(T - T_actual) / T0 * 100;
 		if (abs_error > max_abs_error)

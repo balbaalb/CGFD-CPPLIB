@@ -1,15 +1,5 @@
+0.CMD.bat
 AdvancedTests.cpp
 GdiplusStartup.txt
 LearningBoard.cpp
 LearningBoard.h
-
-#Experimental
-TriangulationQM.cpp
-TriangulationQM.h
-bqeToTiffConverter.cpp
-bqeToTiffConverter.h
-TesterPr.cpp
-TesterPr.h
-
-#git log
-git.log.txt

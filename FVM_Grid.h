@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include "Node.h"
 #include "NodeComposite.h"
+#include <functional>
 using namespace std;
 class Face;
 class Edge;
@@ -55,12 +56,9 @@ class FVM_Grid
 	void SolveSIMPLE_vy();
 	void SolveSIMPLE_p();
 	void SolveSIMPLE_CorrectV();
-	void SetThermalBoundaryConditions_internal(fxy BC, GRID_DIRECTION side,string type/*Drichlit or Neumann*/);
+	void SetThermalBoundaryConditions_internal(function<double(const Vector3D& P)> BC, GRID_DIRECTION side, string type/*Drichlit or Neumann*/);
 	static double Lx;
 	static double Ly;
-	static double RBC_initial_u(double x, double y);
-	static double RBC_initial_v(double x, double y);
-	static double RBC_initial_T(double x, double y);
 public:
 	static double alpha_p;//based on Patankar's equation (6.24), page 128
 	static double alpha_v;//relaxation value for V
@@ -72,14 +70,14 @@ public:
 	~FVM_Grid();
 	void SetThermalConductionProblem(double conductivity);
 	void SetThermalConductionConvectionProblem(double conductivity, double Density);
-	void SetThermalConductionConvectionProblem(double conductivity, double Density, velocityField Velocity);
+	void SetThermalConductionConvectionProblem(double conductivity, double Density, function<double(const Vector3D& P)> Velocity[2]);
 	void SetFlowProblem(const LiquidProperties& liq);
 	void SetFlowProblem(double Re);
 	void SetFlowForcedConvectionProblem(const LiquidProperties& liq);
 	void SetFlowForcedConvectionProblem(double Re, double Pe);
 	void SetFlowNaturalConvectionProblem(double Ra, double Pr);
-	void SetThermalBoundaryConditions(fxy BC, GRID_DIRECTION side = ANY_BOUNDARY);
-	void SetThermalGradientBoundaryConditions(fxy BC, GRID_DIRECTION side = ANY_BOUNDARY);
+	void SetThermalBoundaryConditions(function<double(const Vector3D& P)> BC, GRID_DIRECTION side = ANY_BOUNDARY);
+	void SetThermalGradientBoundaryConditions(function<double(const Vector3D& P)> BC, GRID_DIRECTION side = ANY_BOUNDARY);
 	void SetThermalBoundaryConditions(const BoundaryValues& BT);
 	void SetThermalGradientBoundaryConditions(const BoundaryValues& BT);
 	void SetVelocityBoundaryConditions(const BoundaryValues& Vx, const BoundaryValues& Vy);

@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 using namespace std;
 #include "Node.h"
 #include "MathUtils.h"
@@ -57,12 +58,12 @@ public:
 	void AddToC(GeoGraphObject* row, double value);
 	void SetValueInEquations(GeoGraphObject* row, double value);
 	void SetValue(GeoGraphObject* objPtr, double value);
-	void SetValue(GeoGraphObject* objPtr, fxy f);
+	void SetValue(GeoGraphObject* objPtr, function<double(const Vector3D& P)> f);
 	void SetConstantValue(GeoGraphObject* objPtr, double value);
-	void SetConstantValue(GeoGraphObject* objPtr, fxy f);
+	void SetConstantValue(GeoGraphObject* objPtr, function<double(const Vector3D& P)> f);
 	void SetConstantNormalGradient(GeoGraphObject* objPtr, double value);
-	void SetConstantNormalGradient(GeoGraphObject* objPtr, fxy f);
-	void SetValueAllNodes(fxy f);
+	void SetConstantNormalGradient(GeoGraphObject* objPtr, function<double(const Vector3D& P)> f);
+	void SetValueAllNodes(function<double(const Vector3D& P)> f);
 	void Solve();
 	double SolveAndUpdate(double underRelaxation = 1);
 	double SolveAndAdd(double underRelaxation = 1);

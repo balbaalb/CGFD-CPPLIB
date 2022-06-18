@@ -21,6 +21,7 @@
 #include "QuadEdge.h"
 #include "QuadEdgeIndex.h"
 #include "Triangulation.h"
+#include "TriangulationQM.h"
 #include "ConvexHull3D.h"
 #include "DelaunayLifting.h"
 #include "bPolygon.h"
@@ -38,7 +39,6 @@ void Tester()
 {
 	int dummy;
 	int NumTests = 0;
-	bool bypass_tester_FVM = true;
 	try
 	{
 		std::cout << std::endl << "MathUtils test ...";
@@ -125,6 +125,10 @@ void Tester()
 		correct = tester_Triangulation(NumTests);//+15
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
+		std::cout << std::endl << "TriangulationQM test ...";
+		correct = tester_TriangulationQM(NumTests);//+3
+		std::cout << (correct ? "okay!" : "ERROR!");
+		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "ConvexHull3D test ...";
 		correct = tester_ConvexHull3D(NumTests);//+7
 		std::cout << (correct ? "okay!" : "ERROR!");
@@ -153,14 +157,9 @@ void Tester()
 		correct = tester_ShapeFunction(NumTests);//+3
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
-		if (!bypass_tester_FVM)
-		{
-			std::cout << std::endl << "FVM test ...";
-			correct = tester_FVM(NumTests);//+12
-			std::cout << (correct ? "okay!" : "ERROR!");
-		}
-		else
-			NumTests += 12;
+		std::cout << std::endl << "FVM test ...";
+		correct = tester_FVM(NumTests);//+12
+		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "Grid test ...";
 		correct = tester_bGrid(NumTests);//+1
@@ -178,7 +177,7 @@ void Tester()
 		correct = tester_NodeComposite(NumTests);//+1
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
-		if (NumTests < 127)
+		if (NumTests < 130)
 		{
 			std::cout << std::endl << "SOME TESTS ARE BYPASSED!!!!";
 		}
