@@ -20,9 +20,8 @@ double FVM_Grid::alpha_v = 0.3;
 double FVM_Grid::ConvergenceTolVx = 1.0e-6;
 double FVM_Grid::ConvergenceTolVy = 1.0e-6;
 double FVM_Grid::ConvergenceTolP = 1.0e-6;
+double FVM_Grid::ConvergenceTolT = 1.0e-6;
 bool FVM_Grid::change_alpha = false;
-double FVM_Grid::Lx = 0;
-double FVM_Grid::Ly = 0;
 void BoundaryValues::copyBody(const BoundaryValues& rhs)
 {
 	for (int j = 0; j < 6; ++j) {
@@ -157,14 +156,19 @@ void FVM_Grid::AddDiffusionConvectionEquations()
 				double vn = Horizontal ? this->VyNodes.GetValue(e) : this->VxNodes.GetValue(e);
 				if ((Horizontal && en(1) < 0) || (!Horizontal && en(0) < 0))
 					vn *= -1;
-				double Diff = k * dL / deltaL;
-				double Flux = density * vn * dL;
+				double Diff = k / deltaL;
+				double Flux = density * vn;
 				double Pe = fabs(Flux / Diff);
 				double A0 = pow(1.0 - 0.1 * Pe, 5);
 				double A = A0 > 0 ? A0 : 0;
-				double a = Diff * A + (Flux < 0 ? -Flux : 0);//Flux < 0 means an incoming Flux
+				double a = dL * Diff * A + dL * (Flux < 0 ? -Flux : 0);//Flux < 0 means an incoming Flux
 				this->TNodes.AddToK(f, gPtr, a);
 				aP += a;
+				if (this->tvd != TVD::NO_TVD)
+				{
+					double S_TVD = GetTVD(Flux, f, e);
+					this->TNodes.AddToC(f, -S_TVD);
+				}
 				e = ite.Next();
 			}
 			this->TNodes.AddToK(f, f, -aP);
@@ -183,6 +187,26 @@ void FVM_Grid::AddDiffusionConvectionEquations()
 		}
 		f = itf.Next();
 	}
+}
+double FVM_Grid::GetTVD(double Flux, Face* f, Edge* e)
+{
+	//based on the east neighbor, pages 171-175 of Versteeg & Malalasekara (2007)
+	Face* fE = e->GetOtherFace(f);
+	Edge* eE = grid->GetOppositeEdge(e, fE);
+	Face* fEE = eE->GetOtherFace(fE);
+	Edge* eW = grid->GetOppositeEdge(e, f);
+	Face* fW = eW->GetOtherFace(f);
+	double Phi_P = this->TNodes.GetNode(f)->value;
+	double Phi_E = this->TNodes.GetNode(fE)->value;
+	if (fabs(Phi_E - Phi_P) < 1.0e-10)
+		return 0;
+	double Phi_EE = this->TNodes.GetNode(fEE)->value;
+	double Phi_W = this->TNodes.GetNode(fW)->value;
+	double r_plus = (Phi_P - Phi_W) / (Phi_E - Phi_P);
+	double r_minus = (Phi_EE - Phi_E) / (Phi_E - Phi_P);
+	double alpha = Flux > 0 ? 1 : 0;
+	double S_TVD = 0.5 * Flux * ((1.0 - alpha) * this->psi(r_minus) - alpha * this->psi(r_plus)) * (Phi_E - Phi_P);
+	return S_TVD;
 }
 void FVM_Grid::SolveSIMPLE_vx()
 {
@@ -440,6 +464,22 @@ void FVM_Grid::SetThermalBoundaryConditions_internal(function<double(const Vecto
 		e = ite.Next();
 	}
 }
+double FVM_Grid::psi(double r)
+{
+	switch (tvd)
+	{
+	case FVM_Grid::NO_TVD:
+		return 0;
+	case FVM_Grid::QUICK:
+		return fmax(0, fmin(2.0, fmin(2.0 * r , (3.0 + r) / 4.0)));
+	case FVM_Grid::VAN_LEER:
+		return (r + fabs(r)) / (1.0 + r);
+	case FVM_Grid::VAN_ALBADA:
+		return (r + r * r) / (1.0 + r * r);
+	default:
+		return 0;
+	}
+}
 FVM_Grid::FVM_Grid(const bGrid& G)
 {
 	this->grid = new bGrid(G);
@@ -449,8 +489,9 @@ FVM_Grid::FVM_Grid(const bGrid& G)
 	this->Source_VyT = 0;
 	this->Source_TVx = 0;
 	this->Source_VyT = 0;
-	FVM_Grid::Lx = G.GetLx();
-	FVM_Grid::Ly = G.GetLy();
+	this->Lx = G.GetLx();
+	this->Ly = G.GetLy();
+	this->tvd = TVD::NO_TVD;
 }
 FVM_Grid::~FVM_Grid()
 {
@@ -493,6 +534,10 @@ void FVM_Grid::SetThermalConductionConvectionProblem(double conductivity, double
 		e = ite.Next();
 	}
 	this->SetThermalConductionConvectionProblem(conductivity, Density);
+}
+void FVM_Grid::SetTVD(TVD TVD_Type)
+{
+	this->tvd = TVD_Type;
 }
 void FVM_Grid::SetFlowProblem(const LiquidProperties& liq)
 {
@@ -558,9 +603,9 @@ void FVM_Grid::SetFlowNaturalConvectionProblem(double Ra, double Pr)
 	this->dValue.rehash(qe->NumEdges());
 	this->TNodes.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY);
 	this->TNodes.InitializeEquations();
-	auto RBC_initial_u = [](const Vector3D& P) {double x{ P(0) }, y{ P(1) }; return x * (Lx - x) * y * (Ly - y) * sin(pi * y / Ly - 0.5); };
-	auto RBC_initial_v = [](const Vector3D& P) {double x{ P(0) }, y{ P(1) }; return x * (Lx - x) * y * (Ly - y) * sin(pi * x / Lx - 0.5); };
-	auto RBC_initial_T = [](const Vector3D& P) {double x{ P(0) }, y{ P(1) }; return x * (Lx - x) * y * (Ly - y) * sin(0.5 - pi * y / Ly); };
+	auto RBC_initial_u = [this](const Vector3D& P) {double x{ P(0) }, y{ P(1) }; return x * (Lx - x) * y * (Ly - y) * sin(pi * y / Ly - 0.5); };
+	auto RBC_initial_v = [this](const Vector3D& P) {double x{ P(0) }, y{ P(1) }; return x * (Lx - x) * y * (Ly - y) * sin(pi * x / Lx - 0.5); };
+	auto RBC_initial_T = [this](const Vector3D& P) {double x{ P(0) }, y{ P(1) }; return x * (Lx - x) * y * (Ly - y) * sin(0.5 - pi * y / Ly); };
 	this->VxNodes.SetValueAllNodes(RBC_initial_u);
 	this->VyNodes.SetValueAllNodes(RBC_initial_v);
 	this->TNodes.SetValueAllNodes(RBC_initial_T);
@@ -661,12 +706,22 @@ void FVM_Grid::SetVelocityGradientBoundaryConditions(const BoundaryValues& Vx, c
 }
 void FVM_Grid::SolveThermalProblem(vector<Node*>& cell_results)
 {
-	if (this->mode == MODE::CONDUCTION)
-		this->AddDiffusionEquations();
-	else
-		this->AddDiffusionConvectionEquations();
-	this->TNodes.SolveAndUpdate();
-	this->TNodes.Populate();
+	int iter = -1;
+	int maxIter = this->mode == MODE::CONDUCTION || this->tvd == TVD::NO_TVD ? 0 : 50;
+	while (iter < maxIter)
+	{
+		++iter;
+		if (this->mode == MODE::CONDUCTION)
+			this->AddDiffusionEquations();
+		else
+			this->AddDiffusionConvectionEquations();
+		this->ConvergedT = this->TNodes.SolveAndUpdate();
+		this->TNodes.Populate();
+		if (this->ConvergedT > 1e10)
+			throw "Error: The TVD iterations are not stable.";
+		if (this->ConvergedT < FVM_Grid::ConvergenceTolT)
+			break;
+	}
 	this->TNodes.GetResults_Cells(cell_results);
 }
 void FVM_Grid::SolveSIMPLE(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& P, int maxIter)
@@ -710,7 +765,7 @@ void FVM_Grid::SolveSIMPLE(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& 
 			this->ConvergedP < FVM_Grid::ConvergenceTolP)
 			break;
 		if (this->ConvergedVx > 1e10 || this->ConvergedVy > 1e10 || this->ConvergedP > 1e10)
-			break;
+			throw "Error: The SIMPLE iterations are not stable.";
 		if (FVM_Grid::change_alpha)
 		{
 			ConvergedVxArr[iter] = this->ConvergedVx;
@@ -787,6 +842,8 @@ bool tester_FVM_Grid(int& NumTests)
 	if (!tester_FVM_Grid_11(NumTests))
 		return false;
 	if (!tester_FVM_Grid_12(NumTests))
+		return false;
+	if (!tester_FVM_Grid_13(NumTests))
 		return false;
 	++NumTests;
 	return true;
@@ -1171,6 +1228,46 @@ bool tester_FVM_Grid_12(int& NumTests)//test # 10 , infinitely extended RBC.
 		fout << endl << T[i]->GetPoint()(0) << "," << T[i]->GetPoint()(1) << "," << T[i]->value;
 	}
 	fout.close();
+	++NumTests;
+	return true;
+}
+bool tester_FVM_Grid_13(int& NumTests)
+{
+	//conduction-convection Rectangular 2 x 2 + TVD
+	int N = 10;
+	double Lx = 10, Ly = 10;
+	double k = 10.0;
+	double rho = 1.0;
+	double vx = 1.5, vy = 2.5, T0 = 1.0, T1 = 1;
+	double kapa = k / rho;
+	convectionConstVelocity conv(T0, T1, vx, vy, Lx, Ly, kapa);
+	bGrid G(N, N, Lx, Ly);
+	G.GetMesh2D()->print("..\\Data\\tester_FVM_Grid_3.Grid.txt");
+	FVM_Grid fvm(G);
+	function<double(const Vector3D& P)> V[2];
+	V[0] = [conv](const Vector3D& P) {return conv.vx(P); };
+	V[1] = [conv](const Vector3D& P) {return conv.vy(P); };
+	fvm.SetThermalConductionConvectionProblem(k, rho, V);
+	fvm.SetTVD(); //Change from tester_FVM_Grid_3
+	auto temperatureField = [conv](const Vector3D& P) {return conv.T(P); };
+	fvm.SetThermalBoundaryConditions(temperatureField);
+	vector<Node*> results;
+	fvm.SolveThermalProblem(results);
+	double max_abs_error = 0;
+	double max_error_percent = 0;
+	for (int i = 0; i < results.size(); ++i)
+	{
+		double T = results[i]->value;
+		double T_actual = conv.T(results[i]->GetPoint());
+		double abs_error = fabs(T - T_actual);
+		double error_percent = T_actual != 0 ? fabs(T - T_actual) / T_actual * 100 : fabs(T - T_actual) / T0 * 100;
+		if (abs_error > max_abs_error)
+			max_abs_error = abs_error;
+		if (error_percent > max_error_percent)
+			max_error_percent = error_percent;
+	}
+	if (max_error_percent > 1.0e-10)//TVD Effect!
+		return false;
 	++NumTests;
 	return true;
 }

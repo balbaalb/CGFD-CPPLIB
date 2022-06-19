@@ -44,6 +44,7 @@ public:
 	bool IsBoundary(Edge* e, GRID_DIRECTION side = GRID_DIRECTION::ANY_BOUNDARY);
 	GRID_DIRECTION WhichBoundary(Edge* e);
 	GRID_DIRECTION WhichBoundary(Vertex* v);
+	Edge* GetOppositeEdge(Edge* e, Face* f);
 };
 bool tester_bGrid(int& NumTests);
 #endif

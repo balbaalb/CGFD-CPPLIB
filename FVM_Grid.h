@@ -46,31 +46,38 @@ class FVM_Grid
 	double ConvergedVx;
 	double ConvergedVy;
 	double ConvergedP;
+	double ConvergedT;
 	double Source_VxT;//source term in Vx equation: Source_VxT * T; 
 	double Source_VyT;//source term in Vy equation: Source_VyT * T;
 	double Source_TVx;//source term in Energy equation: Source_TVx * Vx;
 	double Source_TVy;//source term in Energy equation: Source_TVy * Vy;
 	void AddDiffusionEquations();
 	void AddDiffusionConvectionEquations();
+	double GetTVD(double Flux, Face* f, Edge* e);
 	void SolveSIMPLE_vx();
 	void SolveSIMPLE_vy();
 	void SolveSIMPLE_p();
 	void SolveSIMPLE_CorrectV();
 	void SetThermalBoundaryConditions_internal(function<double(const Vector3D& P)> BC, GRID_DIRECTION side, string type/*Drichlit or Neumann*/);
-	static double Lx;
-	static double Ly;
+	double Lx;
+	double Ly;
+	public: enum TVD { NO_TVD, QUICK, VAN_LEER, VAN_ALBADA };
+	private: TVD tvd { NO_TVD };
+	double psi(double r);
 public:
 	static double alpha_p;//based on Patankar's equation (6.24), page 128
 	static double alpha_v;//relaxation value for V
 	static double ConvergenceTolVx;
 	static double ConvergenceTolVy;
 	static double ConvergenceTolP;
+	static double ConvergenceTolT;
 	static bool change_alpha;
 	FVM_Grid(const bGrid& G);
 	~FVM_Grid();
 	void SetThermalConductionProblem(double conductivity);
 	void SetThermalConductionConvectionProblem(double conductivity, double Density);
 	void SetThermalConductionConvectionProblem(double conductivity, double Density, function<double(const Vector3D& P)> Velocity[2]);
+	void SetTVD(TVD TVD_Type = TVD::VAN_ALBADA);
 	void SetFlowProblem(const LiquidProperties& liq);
 	void SetFlowProblem(double Re);
 	void SetFlowForcedConvectionProblem(const LiquidProperties& liq);
@@ -97,4 +104,5 @@ bool tester_FVM_Grid_9(int& NumTests);//Convective lid-driven cavity
 bool tester_FVM_Grid_10(int& NumTests);//RBC Box
 bool tester_FVM_Grid_11(int& NumTests);//test # 1 with Neumann's boundary condition
 bool tester_FVM_Grid_12(int& NumTests);//test # 10 , infinitely extended RBC.
+bool tester_FVM_Grid_13(int& NumTests);//Conduction-convection using TVD (based on tester_FVM_Grid_3)
 #endif
