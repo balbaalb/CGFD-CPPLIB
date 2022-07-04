@@ -12,27 +12,14 @@
 #include "ShapeFunction.h"
 #include "Edge.h"
 #include "EdgeIterator.h"
+#include "Face.h"
 #include "ConductionConvectionProblem.h"
 double FVM::constant_conductivity = 0;
 double FVM::get_constant_conductivity(double x, double y)
 {
 	return FVM::constant_conductivity;
 }
-FVM::FVM(const Triangulation& T)
-{
-	this->triangulation = new Triangulation(T);
-	QuadEdge* qe = this->triangulation->GetMesh2D();
-	Face* fb = this->triangulation->GetBoundary();
-	this->TNodes.Initialize(qe, fb, VERTICES);
-	this->TNodes.InitializeEquations();
-}
-FVM::~FVM()
-{
-	if (this->triangulation)
-		delete this->triangulation;
-	this->triangulation = 0;
-}
-void FVM::AddDiffusion(double conductivity)
+void FVM::AddDiffusion_vertexBased(double conductivity)
 {
 	/*In Triangle ABC:
 	T(x,y) = N_A(x,y) * T_A + N_B(x,y) * T_B + N_C(x,y) * T_C;
@@ -100,6 +87,98 @@ void FVM::AddDiffusion(double conductivity)
 		}
 		f = itf.Next();
 	}
+}
+void FVM::AddDiffusion_cellBased(double conductivity)
+{
+	this->TNodes.InitializeEquations();
+	double k = conductivity;
+	Vector3D ez(0, 0, 1);
+	int N = this->triangulation->NumVertices();
+	QuadEdge* qe = this->triangulation->GetMesh2D();
+	Face* fb = this->triangulation->GetBoundary();
+	FaceIterator itf(qe);
+	Face* f = itf.Next();
+	while (f)
+	{
+		if (f != fb)
+		{
+			Vector3D C = f->GetCenteriod();
+			double aP = 0; 
+			double b = 0;
+			EdgeIterator ite(f);
+			Edge* e = ite.Next();
+			while (e)
+			{
+				Vector3D M = e->GetMidPoint();
+				Vector3D CM = M - C;
+				Vector3D eta = e->GetVector();
+				Vertex* Va = e->GetOrig();
+				Vertex* Vb = e->GetDest();
+				if (CM.CrossProduct2D(eta) < 0)
+				{
+					eta = eta * (-1);
+					std::swap(Va, Vb);
+				}
+				double Phi_a = this->TNodes.GetNode(Va)->value;
+				double Phi_b = this->TNodes.GetNode(Vb)->value;
+				double etaL = eta.abs();
+				Vector3D e_eta = eta / etaL;
+				Face* f1 = e->GetOtherFace(f);
+				Vector3D C1;
+				GeoGraphObject* colPtr;
+				if (f1 != fb)
+				{
+					C1 = f1->GetCenteriod();
+					colPtr = f1;
+				}
+				else
+				{
+					C1 = (e->GetOrig()->GetPoint() + e->GetDest()->GetPoint()) / 2.0;
+					colPtr = e;
+				}
+				Vector3D ksi = C1 - C;
+				double ksiL = ksi.abs();
+				Vector3D e_ksi = ksi / ksiL;
+				Vector3D n = e_eta && ez;
+				n(2) = 0;//avoiding numerical issues.
+				double De = k / ksiL;
+				double Diff = De * etaL / (n || e_ksi);
+				this->TNodes.AddToK(f, colPtr, Diff);
+				aP += Diff;
+				double cross_diff_coef = -k * (e_ksi || e_eta) / (n || e_ksi);
+				double source_cross_diffusion = cross_diff_coef * (Phi_b - Phi_a);
+				b += source_cross_diffusion;
+				e = ite.Next();
+			}
+			this->TNodes.AddToK(f, f, -aP);
+			this->TNodes.AddToC(f, -b);
+		}
+		f = itf.Next();
+	}
+}
+FVM::FVM(const Triangulation& T, CELL_GEOMETRY cell_geo_) : cell_geo(cell_geo_)
+{
+	this->triangulation = new Triangulation(T);
+	QuadEdge* qe = this->triangulation->GetMesh2D();
+	Face* fb = this->triangulation->GetBoundary();
+	if (this->cell_geo == CELL_GEOMETRY::VERTEX_BASED)
+		this->TNodes.Initialize(qe, fb, NODE_COMPOSITE_TYPE::VERTICES);
+	else
+		this->TNodes.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY);
+	this->TNodes.InitializeEquations();
+}
+FVM::~FVM()
+{
+	if (this->triangulation)
+		delete this->triangulation;
+	this->triangulation = 0;
+}
+void FVM::AddDiffusion(double conductivity)
+{
+	if (this->cell_geo == CELL_GEOMETRY::VERTEX_BASED)
+		this->AddDiffusion_vertexBased(conductivity);
+	else
+		FVM::constant_conductivity = conductivity;
 }
 void FVM::AddDiffusionAndConvection(function<double(const Vector3D& P)> conductivity, double density, function<double(const Vector3D& P)> V[2])
 {
@@ -226,12 +305,42 @@ void FVM::SetBoundaryConditions(function<double(const Vector3D& P)> BC)
 		this->TNodes.SetConstantValue(v, T);
 		v = itv.Next();
 	}
+	if (this->cell_geo == CELL_GEOMETRY::CELL_BASED)
+	{
+		EdgeIterator ite(fb);
+		Edge* e = ite.Next();
+		while (e)
+		{
+			Vector3D P = e->GetMidPoint();
+			double T = BC(P);
+			this->TNodes.SetConstantValue(e, T);
+			e = ite.Next();
+		}
+	}
 }
-void FVM::Solve(vector<Node*>& vertex_results)
+void FVM::Solve(vector<Node*>& results)
 {
-	this->TNodes.SolveAndUpdate();
-	this->TNodes.Populate();
-	this->TNodes.GetResults_Vertices(vertex_results);
+	if (this->cell_geo == CELL_GEOMETRY::VERTEX_BASED)
+	{
+		this->TNodes.SolveAndUpdate();
+		this->TNodes.Populate();
+	}
+	else
+	{
+		int iter = -1;
+		int max_iter = 50;
+		double Min_convergence = 0.001;
+		while (iter < max_iter)
+		{
+			++iter;
+			this->AddDiffusion_cellBased(FVM::constant_conductivity);
+			double convergence = this->TNodes.SolveAndUpdate();
+			if (convergence < Min_convergence)
+				break;
+			this->TNodes.Populate();
+		}
+	}
+	this->TNodes.GetResults_Vertices(results);
 }
 double FVM::Get_TValue(const Vector& P)
 {
@@ -251,6 +360,10 @@ bool tester_FVM(int& NumTests)
 		return false;
 	if (!tester_FVM_6(NumTests))
 		return false;
+	if (!tester_FVM_7(NumTests))
+		return false;
+	if (!tester_FVM_8(NumTests))
+		return false;
 	++NumTests;
 	return true;
 }
@@ -260,7 +373,7 @@ bool tester_FVM_1(int& NumTests)
 	double k = 1.0;
 	ConductionExample cond(Lx, Ly, T0, T1);
 	Triangulation T = Triangulation::OffDiagonalGrid(2, 2, Lx, Ly);
-	FVM fvm(T);
+	FVM fvm(T, FVM::CELL_GEOMETRY::VERTEX_BASED);
 	fvm.AddDiffusion(k);
 	auto temperatureField = [cond](const Vector3D& P) {return cond.T(P); };
 	fvm.SetBoundaryConditions(temperatureField);
@@ -300,7 +413,7 @@ bool tester_FVM_2(int& NumTests)
 	double k = 1.0;
 	ConductionExample cond(Lx, Ly, T0, T1);
 	Triangulation T = Triangulation::OffDiagonalGrid(10, 10, Lx, Ly);
-	FVM fvm(T);
+	FVM fvm(T, FVM::CELL_GEOMETRY::VERTEX_BASED);
 	fvm.AddDiffusion(k);
 	auto temperatureField = [cond](const Vector3D& P) {return cond.T(P); };
 	fvm.SetBoundaryConditions(temperatureField);
@@ -334,7 +447,7 @@ bool tester_FVM_3(int& NumTests)
 	double kapa = k / rho;
 	convectionConstVelocity conv(T0, T1, vx, vy, Lx, Ly, kapa);
 	Triangulation T = Triangulation::OffDiagonalGrid(20, 20, Lx, Ly);
-	FVM fvm(T);
+	FVM fvm(T, FVM::CELL_GEOMETRY::VERTEX_BASED);
 	function<double(const Vector3D& P)> V[2];
 	V[0] = [conv](const Vector3D& P) {return conv.vx(P); };
 	V[1] = [conv](const Vector3D& P) {return conv.vy(P); };
@@ -368,7 +481,7 @@ bool tester_FVM_4(int& NumTests)
 	double k = 1;
 	double rho = 1.0;
 	Triangulation T = Triangulation::OffDiagonalGrid(10, 10, Lx, Ly);
-	FVM fvm(T);
+	FVM fvm(T, FVM::CELL_GEOMETRY::VERTEX_BASED);
 	BaligaPatankarExample1 conv;
 	function<double(const Vector3D& P)> V[2];
 	V[0] = [conv](const Vector3D& P) {return conv.vx(P); };
@@ -407,7 +520,7 @@ bool tester_FVM_5(int& NumTests)
 	double Lx = sqrt(2.0), Ly = sqrt(2.0);
 	double rho = 1.0;
 	Triangulation T = Triangulation::OffDiagonalGrid(10, 10, Lx, Ly);
-	FVM fvm(T);
+	FVM fvm(T, FVM::CELL_GEOMETRY::VERTEX_BASED);
 	BaligaPatankarExample1_case2 conv;
 	function<double(const Vector3D& P)> V[2];
 	V[0] = [conv](const Vector3D& P) {return conv.vx(P); };
@@ -468,7 +581,7 @@ bool tester_FVM_6a(int& NumTests, vector<double>* verticalCenterlineResults)
 	double k = 0;
 	double T00 = conv.T(0, 0, 0);
 	vector<Node*> results;
-	FVM fvm(T);
+	FVM fvm(T, FVM::CELL_GEOMETRY::VERTEX_BASED);
 	function<double(const Vector3D& P)> V[2];
 	V[0] = [conv](const Vector3D& P) {return conv.vx(P); };
 	V[1] = [conv](const Vector3D& P) {return conv.vy(P); };
@@ -520,7 +633,7 @@ bool tester_FVM_6b(int& NumTests, vector<double>* verticalCenterlineResults)
 	double rho = 1;
 	double k = 1.0e-7;
 	vector<Node*> results;
-	FVM fvm2(T);
+	FVM fvm2(T, FVM::CELL_GEOMETRY::VERTEX_BASED);
 	function<double(const Vector3D& P)> V[2];
 	V[0] = [conv](const Vector3D& P) {return conv.vx(P); };
 	V[1] = [conv](const Vector3D& P) {return conv.vy(P); };
@@ -567,7 +680,7 @@ bool tester_FVM_6c(int& NumTests, vector<double>* verticalCenterlineResults)
 	double rho = 1;
 	double k = 1.0e-7;
 	vector<Node*> results;
-	FVM fvm3(T);
+	FVM fvm3(T, FVM::CELL_GEOMETRY::VERTEX_BASED);
 	function<double(const Vector3D& P)> V[2];
 	V[0] = [conv](const Vector3D& P) {return conv.vx(P); };
 	V[1] = [conv](const Vector3D& P) {return conv.vy(P); };
@@ -614,7 +727,7 @@ bool tester_FVM_6d(int& NumTests, vector<double>* verticalCenterlineResults)
 	double rho = 1;
 	double k = 1.0e-7;
 	vector<Node*> results;
-	FVM fvm4(T);
+	FVM fvm4(T, FVM::CELL_GEOMETRY::VERTEX_BASED);
 	function<double(const Vector3D& P)> V[2];
 	V[0] = [conv](const Vector3D& P) {return conv.vx(P); };
 	V[1] = [conv](const Vector3D& P) {return conv.vy(P); };
@@ -661,7 +774,7 @@ bool tester_FVM_6e(int& NumTests, vector<double>* verticalCenterlineResults)
 	double rho = 1;
 	double k = 1.0e-7;
 	vector<Node*> results;
-	FVM fvm5(T);
+	FVM fvm5(T, FVM::CELL_GEOMETRY::VERTEX_BASED);
 	function<double(const Vector3D& P)> V[2];
 	V[0] = [conv](const Vector3D& P) {return conv.vx(P); };
 	V[1] = [conv](const Vector3D& P) {return conv.vy(P); };
@@ -698,4 +811,65 @@ bool tester_FVM_6e(int& NumTests, vector<double>* verticalCenterlineResults)
 	++NumTests;
 	return true;
 }
-
+bool tester_FVM_7(int& NumTests)
+{
+	double Lx = 6, Ly = 6, T0 = 1.0, T1 = 10 / (exp(pi) - exp(-pi));
+	double k = 1.0;
+	ConductionExample cond(Lx, Ly, T0, T1);
+	Triangulation T = Triangulation::OffDiagonalGrid(2, 2, Lx, Ly);
+	FVM fvm(T);
+	auto temperatureField = [cond](const Vector3D& P) {return cond.T(P); };
+	fvm.SetBoundaryConditions(temperatureField);
+	fvm.AddDiffusion(k);
+	vector<Node*> results;
+	fvm.Solve(results);
+	double max_abs_error = 0;
+	double max_error_percent = 0;
+	for (int i = 0; i < results.size(); ++i)
+	{
+		double T = results[i]->value;
+		Vector3D P = results[i]->GetPoint();
+		double T_actual = cond.T(P);
+		double abs_error = fabs(T - T_actual);
+		double error_percent = T_actual != 0 ? fabs(T - T_actual) / T_actual * 100 : fabs(T - T_actual) / T0 * 100;
+		if (abs_error > max_abs_error)
+			max_abs_error = abs_error;
+		if (error_percent > max_error_percent)
+			max_error_percent = error_percent;
+	}
+	if (max_error_percent > 2)
+		return false;
+	++NumTests;
+	return true;
+}
+bool tester_FVM_8(int& NumTests)
+{
+	double Lx = 6, Ly = 6, T0 = 1.0, T1 = 10 / (exp(pi) - exp(-pi));
+	double k = 1.0;
+	ConductionExample cond(Lx, Ly, T0, T1);
+	Triangulation T = Triangulation::OffDiagonalGrid(10, 10, Lx, Ly);
+	FVM fvm(T);
+	auto temperatureField = [cond](const Vector3D& P) {return cond.T(P); };
+	fvm.SetBoundaryConditions(temperatureField);
+	fvm.AddDiffusion(k);
+	vector<Node*> results;
+	fvm.Solve(results);
+	double max_abs_error = 0;
+	double max_error_percent = 0;
+	for (int i = 0; i < results.size(); ++i)
+	{
+		double T = results[i]->value;
+		Vector3D P = results[i]->GetPoint();
+		double T_actual = cond.T(P);
+		double abs_error = fabs(T - T_actual);
+		double error_percent = T_actual != 0 ? fabs(T - T_actual) / T_actual * 100 : fabs(T - T_actual) / T0 * 100;
+		if (abs_error > max_abs_error)
+			max_abs_error = abs_error;
+		if (error_percent > max_error_percent)
+			max_error_percent = error_percent;
+	}
+	if (max_error_percent > 2)
+		return false;
+	++NumTests;
+	return true;
+}

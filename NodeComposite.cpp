@@ -106,48 +106,64 @@ void NodeComposite::populate_basedOn_CELLS()
 	Edge* e = ite.Next();
 	while (e)
 	{
-		Face* fL = e->GetLeft();
-		Face* fR = e->GetRight(); 
-		int counter = 0;
-		double val = 0;
-		if (fL != this->fb)
+		Node* n = this->NodeHash[e]; 
+		auto constValueIter = this->constValues.find(e);
+		if (constValueIter != this->constValues.end())
 		{
-			Node* nL = this->NodeHash[fL];
-			val += nL->value;
-			++counter;
+			n->value = constValueIter->second;
 		}
-		if (fR != this->fb)
+		else
 		{
-			Node* nR = this->NodeHash[fR];
-			val += nR->value;
-			++counter;
+			Face* fL = e->GetLeft();
+			Face* fR = e->GetRight();
+			int counter = 0;
+			double val = 0;
+			if (fL != this->fb)
+			{
+				Node* nL = this->NodeHash[fL];
+				val += nL->value;
+				++counter;
+			}
+			if (fR != this->fb)
+			{
+				Node* nR = this->NodeHash[fR];
+				val += nR->value;
+				++counter;
+			}
+			val /= counter ? double(counter) : 1;
+			n->value = val;
 		}
-		val /= counter  ? double(counter) : 1;
-		Node* n = this->NodeHash[e];
-		n->value = val;
 		e = ite.Next();
 	}
 	VertexIterator itv(qe);
 	Vertex* v = itv.Next();
 	while (v)
 	{
-		int counter = 0;
-		double val = 0;
-		FaceIterator itf(v);
-		Face* f = itf.Next();
-		while (f)
+		Node* n = this->NodeHash[v]; 
+		auto constValueIter = this->constValues.find(v);
+		if (constValueIter != this->constValues.end())
 		{
-			if (f != this->fb)
-			{
-				Node* nf = this->NodeHash[f];
-				val += nf->value;
-				++counter;
-			}
-			f = itf.Next();
+			n->value = constValueIter->second;
 		}
-		val /= counter ? double(counter) : 1;
-		Node* n = this->NodeHash[v];
-		n->value = val;
+		else
+		{
+			int counter = 0;
+			double val = 0;
+			FaceIterator itf(v);
+			Face* f = itf.Next();
+			while (f)
+			{
+				if (f != this->fb)
+				{
+					Node* nf = this->NodeHash[f];
+					val += nf->value;
+					++counter;
+				}
+				f = itf.Next();
+			}
+			val /= counter ? double(counter) : 1;
+			n->value = val;
+		}
 		v = itv.Next();
 	}
 }
@@ -157,24 +173,35 @@ void NodeComposite::populate_basedOn_EDGES()
 	Face* f = itf.Next();
 	while (f)
 	{
-		int counter = 0;
-		double val = 0;
-		EdgeIterator ite(f);
-		Edge* e = ite.Next();
-		while (e)
+		if (f != this->fb)
 		{
-			bool condition = this->EdgeCondition ? (*this->EdgeCondition)[e] : true; 
-			if (condition)
+			Node* n = this->NodeHash[f];
+			auto constValueIter = this->constValues.find(f);
+			if (constValueIter != this->constValues.end())
 			{
-				Node* ne = this->NodeHash[e];
-				val += ne->value;
-				++counter;
+				n->value = constValueIter->second;
 			}
-			e = ite.Next();
+			else
+			{
+				int counter = 0;
+				double val = 0;
+				EdgeIterator ite(f);
+				Edge* e = ite.Next();
+				while (e)
+				{
+					bool condition = this->EdgeCondition ? (*this->EdgeCondition)[e] : true;
+					if (condition)
+					{
+						Node* ne = this->NodeHash[e];
+						val += ne->value;
+						++counter;
+					}
+					e = ite.Next();
+				}
+				val /= counter ? double(counter) : 1;
+				n->value = val;
+			}
 		}
-		val /= counter ? double(counter) : 1;
-		Node* n = this->NodeHash[f];
-		n->value = val;
 		f = itf.Next();
 	}
 	VertexIterator itv(qe);
@@ -183,24 +210,32 @@ void NodeComposite::populate_basedOn_EDGES()
 	{
 		if (this->type == EDGES || (this->type == EDGES_AND_BOUNDARY && !this->IsIndependent(v)))
 		{
-			int counter = 0;
-			double val = 0;
-			EdgeIterator ite(v);
-			Edge* e = ite.Next();
-			while (e)
-			{
-				bool condition = this->EdgeCondition ? (*this->EdgeCondition)[e] : true;
-				if (condition)
-				{
-					Node* ne = this->NodeHash[e];
-					val += ne->value;
-					++counter;
-				}
-				e = ite.Next();
-			}
-			val /= counter ? double(counter) : 1;
 			Node* n = this->NodeHash[v];
-			n->value = val;
+			auto constValueIter = this->constValues.find(v);
+			if (constValueIter != this->constValues.end())
+			{
+				n->value = constValueIter->second;
+			}
+			else
+			{
+				int counter = 0;
+				double val = 0;
+				EdgeIterator ite(v);
+				Edge* e = ite.Next();
+				while (e)
+				{
+					bool condition = this->EdgeCondition ? (*this->EdgeCondition)[e] : true;
+					if (condition)
+					{
+						Node* ne = this->NodeHash[e];
+						val += ne->value;
+						++counter;
+					}
+					e = ite.Next();
+				}
+				val /= counter ? double(counter) : 1;
+				n->value = val;
+			}
 		}
 		v = itv.Next();
 	}
@@ -211,14 +246,22 @@ void NodeComposite::populate_basedOn_EDGES()
 		bool condition = this->EdgeCondition ? (*this->EdgeCondition)[e] : true;
 		if (!condition)
 		{
-			Vertex* vO = e->GetOrig();
-			Vertex* vD = e->GetDest();
-			Node* nO = this->NodeHash[vO];
-			double val = 0.5 * nO->value;
-			Node* nD = this->NodeHash[vD];
-			val += 0.5 * nD->value;
 			Node* n = this->NodeHash[e];
-			n->value = val;
+			auto constValueIter = this->constValues.find(e);
+			if (constValueIter != this->constValues.end())
+			{
+				n->value = constValueIter->second;
+			}
+			else
+			{
+				Vertex* vO = e->GetOrig();
+				Vertex* vD = e->GetDest();
+				Node* nO = this->NodeHash[vO];
+				double val = 0.5 * nO->value;
+				Node* nD = this->NodeHash[vD];
+				val += 0.5 * nD->value;
+				n->value = val;
+			}
 		}
 		e = ite.Next();
 	}
@@ -229,34 +272,53 @@ void NodeComposite::populate_basedOn_VERTICES()
 	Face* f = itf.Next();
 	while (f)
 	{
-		int counter = 0;
-		double val = 0;
-		VertexIterator itv(f);
-		Vertex* v = itv.Next();
-		while (v)
+		if (f != this->fb)
 		{
-			Node* nv = this->NodeHash[v];
-			val += nv->value;
-			++counter;
-			v = itv.Next();
+			Node* n = this->NodeHash[f]; 
+			auto constValueIter = this->constValues.find(f);
+			if (constValueIter != this->constValues.end())
+			{
+				n->value = constValueIter->second;
+			}
+			else
+			{
+				int counter = 0;
+				double val = 0;
+				VertexIterator itv(f);
+				Vertex* v = itv.Next();
+				while (v)
+				{
+					Node* nv = this->NodeHash[v];
+					val += nv->value;
+					++counter;
+					v = itv.Next();
+				}
+				val /= counter ? double(counter) : 1;
+				n->value = val;
+			}
 		}
-		val /= counter ? double(counter) : 1;
-		Node* n = this->NodeHash[f];
-		n->value = val;
 		f = itf.Next();
 	}
 	EdgeIterator ite(qe);
 	Edge* e = ite.Next();
 	while (e)
 	{
-		Vertex* vO = e->GetOrig();
-		Vertex* vD = e->GetDest();
-		Node* nO = this->NodeHash[vO];
-		double val = 0.5 * nO->value;
-		Node* nD = this->NodeHash[vD];
-		val += 0.5 * nD->value;
 		Node* n = this->NodeHash[e];
-		n->value = val;
+		auto constValueIter = this->constValues.find(e);
+		if (constValueIter != this->constValues.end())
+		{
+			n->value = constValueIter->second;
+		}
+		else
+		{
+			Vertex* vO = e->GetOrig();
+			Vertex* vD = e->GetDest();
+			Node* nO = this->NodeHash[vO];
+			double val = 0.5 * nO->value;
+			Node* nD = this->NodeHash[vD];
+			val += 0.5 * nD->value;
+			n->value = val;
+		}
 		e = ite.Next();
 	}
 }
@@ -266,16 +328,24 @@ void NodeComposite::populate_basedOn_CELLS_AND_BOUNDARY()
 	Edge* e = ite.Next();
 	while (e)
 	{
-		Face* fL = e->GetLeft();
-		Face* fR = e->GetRight();
-		if (fR != fb && fL != fb)
+		Node* n = this->NodeHash[e];
+		auto constValueIter = this->constValues.find(e);
+		if (constValueIter != this->constValues.end())
 		{
-			Node* nL = this->NodeHash[fL];
-			double val = 0.5 * nL->value;
-			Node* nR = this->NodeHash[fR];
-			val += 0.5 * nR->value;
-			Node* n = this->NodeHash[e];
-			n->value = val;
+			n->value = constValueIter->second;
+		}
+		else
+		{
+			Face* fL = e->GetLeft();
+			Face* fR = e->GetRight();
+			if (fR != fb && fL != fb)
+			{
+				Node* nL = this->NodeHash[fL];
+				double val = 0.5 * nL->value;
+				Node* nR = this->NodeHash[fR];
+				val += 0.5 * nR->value;
+				n->value = val;
+			}
 		}
 		e = ite.Next();
 	}
@@ -283,66 +353,74 @@ void NodeComposite::populate_basedOn_CELLS_AND_BOUNDARY()
 	Vertex* v = itv.Next();
 	while (v)
 	{
-		int counter = 0;
-		double val = 0;
-		bool onBoundary = false;
-		FaceIterator itf(v);
-		Face* f = itf.Next();
-		while (f)
+		Node* n = this->NodeHash[v];
+		auto constValueIter = this->constValues.find(v);
+		if (constValueIter != this->constValues.end())
 		{
-			if (f != this->fb)
-			{
-				Node* nf = this->NodeHash[f];
-				val += nf->value;
-				++counter;
-			}
-			else 
-			{
-				onBoundary = true;
-				break;
-			}
-			f = itf.Next();
+			n->value = constValueIter->second;
 		}
-		if (onBoundary)
+		else
 		{
-			counter = 0;
-			val = 0;
-			EdgeIterator itev(v);
-			Edge* ev = itev.Next();
-			while (ev) {
-				if (ev->GetRight() == fb || ev->GetLeft() == fb)
+			int counter = 0;
+			double val = 0;
+			bool onBoundary = false;
+			FaceIterator itf(v);
+			Face* f = itf.Next();
+			while (f)
+			{
+				if (f != this->fb)
 				{
-					Node* ne = this->NodeHash[ev];
-					val += ne->value;
+					Node* nf = this->NodeHash[f];
+					val += nf->value;
 					++counter;
 				}
-				ev = itev.Next();
+				else
+				{
+					onBoundary = true;
+					break;
+				}
+				f = itf.Next();
 			}
-			if (counter == 2)//means on the corner, vertex degree = 2
+			if (onBoundary)
 			{
-				EdgeIterator itev2(v);
-				Edge* e1 = itev2.Next();
-				Edge* e2 = itev2.Next();
-				FaceIterator itfv(v);
-				Face* f0 = itfv.Next();
-				if(f0 == this->fb)
-					f0 = itfv.Next();
-				Vector3D P0 = f0->GetPoint();
-				Vector3D P1 = e1->GetPoint();
-				Vector3D P2 = e2->GetPoint();
-				Vector3D P = v->GetPoint();
-				Triangle t(P0, P1, P2);
-				ShapeFunction N(t);
-				double T0 = this->GetValue(f0);
-				double T1 = this->GetValue(e1);
-				double T2 = this->GetValue(e2);
-				val = N.GetValue(0, P) * T0 + N.GetValue(1, P) * T1 + N.GetValue(2, P) * T2;
-				counter = 1;
+				counter = 0;
+				val = 0;
+				EdgeIterator itev(v);
+				Edge* ev = itev.Next();
+				while (ev) {
+					if (ev->GetRight() == fb || ev->GetLeft() == fb)
+					{
+						Node* ne = this->NodeHash[ev];
+						val += ne->value;
+						++counter;
+					}
+					ev = itev.Next();
+				}
+				if (counter == 2)
+				{
+					EdgeIterator itev2(v);
+					Edge* e1 = itev2.Next();
+					Edge* e2 = itev2.Next();
+					FaceIterator itfv(v);
+					Face* f0 = itfv.Next();
+					if(f0 == this->fb)
+						f0 = itfv.Next();
+					Vector3D P0 = f0->GetPoint();
+					Vector3D P1 = e1->GetPoint();
+					Vector3D P2 = e2->GetPoint();
+					Vector3D P = v->GetPoint();
+					Triangle t(P0, P1, P2);
+					ShapeFunction N(t);
+					double T0 = this->GetValue(f0);
+					double T1 = this->GetValue(e1);
+					double T2 = this->GetValue(e2);
+					val = N.GetValue(0, P) * T0 + N.GetValue(1, P) * T1 + N.GetValue(2, P) * T2;
+					counter = 1;
+				}
 			}
+			val /= counter ? double(counter) : 1;
+			n->value = val;
 		}
-		val /= counter ? double(counter) : 1;
-		Node* n = this->NodeHash[v];
-		n->value = val;
 		v = itv.Next();
 	}
 }

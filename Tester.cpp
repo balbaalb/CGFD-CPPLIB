@@ -157,7 +157,7 @@ void Tester()
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "FVM test ...";
-		correct = tester_FVM(NumTests);//+12
+		correct = tester_FVM(NumTests);//+14
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "Grid test ...";
@@ -176,7 +176,7 @@ void Tester()
 		correct = tester_NodeComposite(NumTests);//+1
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
-		if (NumTests < 131)
+		if (NumTests < 133)
 		{
 			std::cout << std::endl << "SOME TESTS ARE BYPASSED!!!!";
 		}

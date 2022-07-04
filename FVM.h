@@ -15,14 +15,18 @@ class FVM
 	static double constant_conductivity;
 	static double get_constant_conductivity(double x, double y);
 	NodeComposite TNodes;
+	void AddDiffusion_vertexBased(double conductivity);
+	void AddDiffusion_cellBased(double conductivity);
+public: enum CELL_GEOMETRY {VERTEX_BASED, CELL_BASED};
+private: CELL_GEOMETRY cell_geo;
 public:
-	FVM(const Triangulation& T);
+	FVM(const Triangulation& T, CELL_GEOMETRY cell_geo_ = CELL_GEOMETRY::CELL_BASED);
 	~FVM();
 	void AddDiffusion(double conductivity);
 	void AddDiffusionAndConvection(function<double(const Vector3D& P)> conductivity, double density, function<double(const Vector3D& P)> V[2]);
 	void AddDiffusionAndConvection(double conductivity, double density, function<double(const Vector3D& P)> V[2]);
 	void SetBoundaryConditions(function<double(const Vector3D& P)> BC);
-	void Solve(vector<Node*>& vertex_results);
+	void Solve(vector<Node*>& results);
 	double Get_TValue(const Vector& P);
 };
 bool tester_FVM(int& NumTests); //tester_FVM_6 has errors !!!!!!!!!!!!!!!!!!!!!!!!
@@ -37,4 +41,6 @@ bool tester_FVM_6b(int& NumTests, vector<double>* verticalCenterlineResults = 0)
 bool tester_FVM_6c(int& NumTests, vector<double>* verticalCenterlineResults = 0);
 bool tester_FVM_6d(int& NumTests, vector<double>* verticalCenterlineResults = 0);
 bool tester_FVM_6e(int& NumTests, vector<double>* verticalCenterlineResults = 0);
+bool tester_FVM_7(int& NumTests);// tester_FVM_1 using the cell_based FVM.
+bool tester_FVM_8(int& NumTests);// tester_FVM_2 using the cell_based FVM.
 #endif
