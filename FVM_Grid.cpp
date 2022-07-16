@@ -164,7 +164,7 @@ void FVM_Grid::AddDiffusionConvectionEquations()
 				double a = dL * Diff * A + dL * (Flux < 0 ? -Flux : 0);//Flux < 0 means an incoming Flux
 				this->TNodes.AddToK(f, gPtr, a);
 				aP += a;
-				if (this->tvd != TVD::NO_TVD)
+				if (this->psi.mode != TVD::MODE::NO_TVD)
 				{
 					double S_TVD = GetTVD(Flux, f, e);
 					this->TNodes.AddToC(f, -S_TVD);
@@ -289,7 +289,7 @@ void FVM_Grid::SolveSIMPLE_vx()
 		}
 		e = ite.Next();
 	}
-	this->ConvergedVx = this->VxNodes.SolveAndUpdate(FVM_Grid::alpha_v);
+	this->ConvergenceVx = this->VxNodes.SolveAndUpdate(FVM_Grid::alpha_v);
 }
 void FVM_Grid::SolveSIMPLE_vy()
 {
@@ -371,7 +371,7 @@ void FVM_Grid::SolveSIMPLE_vy()
 		}
 		e = ite.Next();
 	}
-	this->ConvergedVy = this->VyNodes.SolveAndUpdate(FVM_Grid::alpha_v);
+	this->ConvergenceVy = this->VyNodes.SolveAndUpdate(FVM_Grid::alpha_v);
 }
 void FVM_Grid::SolveSIMPLE_p()
 {
@@ -420,7 +420,7 @@ void FVM_Grid::SolveSIMPLE_p()
 		f = itf.Next();
 	}
 	this->PNodes.SetValueInEquations(f0, 0);
-	this->ConvergedP = this->PNodes.SolveAndAdd(FVM_Grid::alpha_p);
+	this->ConvergenceP = this->PNodes.SolveAndAdd(FVM_Grid::alpha_p);
 }
 void FVM_Grid::SolveSIMPLE_CorrectV()
 {
@@ -464,22 +464,6 @@ void FVM_Grid::SetThermalBoundaryConditions_internal(function<double(const Vecto
 		e = ite.Next();
 	}
 }
-double FVM_Grid::psi(double r)
-{
-	switch (tvd)
-	{
-	case FVM_Grid::NO_TVD:
-		return 0;
-	case FVM_Grid::QUICK:
-		return fmax(0, fmin(2.0, fmin(2.0 * r , (3.0 + r) / 4.0)));
-	case FVM_Grid::VAN_LEER:
-		return (r + fabs(r)) / (1.0 + r);
-	case FVM_Grid::VAN_ALBADA:
-		return (r + r * r) / (1.0 + r * r);
-	default:
-		return 0;
-	}
-}
 FVM_Grid::FVM_Grid(const bGrid& G)
 {
 	this->grid = new bGrid(G);
@@ -491,7 +475,6 @@ FVM_Grid::FVM_Grid(const bGrid& G)
 	this->Source_VyT = 0;
 	this->Lx = G.GetLx();
 	this->Ly = G.GetLy();
-	this->tvd = TVD::NO_TVD;
 }
 FVM_Grid::~FVM_Grid()
 {
@@ -535,9 +518,9 @@ void FVM_Grid::SetThermalConductionConvectionProblem(double conductivity, double
 	}
 	this->SetThermalConductionConvectionProblem(conductivity, Density);
 }
-void FVM_Grid::SetTVD(TVD TVD_Type)
+void FVM_Grid::SetTVD(TVD::MODE TVD_Type)
 {
-	this->tvd = TVD_Type;
+	this->psi.mode = TVD_Type;
 }
 void FVM_Grid::SetFlowProblem(const LiquidProperties& liq)
 {
@@ -707,7 +690,7 @@ void FVM_Grid::SetVelocityGradientBoundaryConditions(const BoundaryValues& Vx, c
 void FVM_Grid::SolveThermalProblem(vector<Node*>& cell_results)
 {
 	int iter = -1;
-	int maxIter = this->mode == MODE::CONDUCTION || this->tvd == TVD::NO_TVD ? 0 : 50;
+	int maxIter = this->mode == MODE::CONDUCTION || this->psi.mode == TVD::MODE::NO_TVD ? 0 : 50;
 	while (iter < maxIter)
 	{
 		++iter;
@@ -715,11 +698,11 @@ void FVM_Grid::SolveThermalProblem(vector<Node*>& cell_results)
 			this->AddDiffusionEquations();
 		else
 			this->AddDiffusionConvectionEquations();
-		this->ConvergedT = this->TNodes.SolveAndUpdate();
+		this->ConvergenceT = this->TNodes.SolveAndUpdate();
 		this->TNodes.Populate();
-		if (this->ConvergedT > 1e10)
+		if (this->ConvergenceT > 1e10)
 			throw "Error: The TVD iterations are not stable.";
-		if (this->ConvergedT < FVM_Grid::ConvergenceTolT)
+		if (this->ConvergenceT < FVM_Grid::ConvergenceTolT)
 			break;
 	}
 	this->TNodes.GetResults_Cells(cell_results);
@@ -760,23 +743,23 @@ void FVM_Grid::SolveSIMPLE(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& 
 			this->TNodes.Populate();
 		}
 		this->printEquations(fileName, iter);
-		if (this->ConvergedVx < FVM_Grid::ConvergenceTolVx &&
-			this->ConvergedVy < FVM_Grid::ConvergenceTolVy &&
-			this->ConvergedP < FVM_Grid::ConvergenceTolP)
+		if (this->ConvergenceVx < FVM_Grid::ConvergenceTolVx &&
+			this->ConvergenceVy < FVM_Grid::ConvergenceTolVy &&
+			this->ConvergenceP < FVM_Grid::ConvergenceTolP)
 			break;
-		if (this->ConvergedVx > 1e10 || this->ConvergedVy > 1e10 || this->ConvergedP > 1e10)
+		if (this->ConvergenceVx > 1e10 || this->ConvergenceVy > 1e10 || this->ConvergenceP > 1e10)
 			throw "Error: The SIMPLE iterations are not stable.";
 		if (FVM_Grid::change_alpha)
 		{
-			ConvergedVxArr[iter] = this->ConvergedVx;
-			ConvergedVyArr[iter] = this->ConvergedVy;
-			ConvergedPArr[iter] = this->ConvergedP;
+			ConvergedVxArr[iter] = this->ConvergenceVx;
+			ConvergedVyArr[iter] = this->ConvergenceVy;
+			ConvergedPArr[iter] = this->ConvergenceP;
 			if (iter > 5)
 			{
 				minConvergedVx = minConvergedVx < ConvergedVxArr[iter - 4] ? minConvergedVx : ConvergedVxArr[iter - 4];
 				minConvergedVy = minConvergedVy < ConvergedVyArr[iter - 4] ? minConvergedVy : ConvergedVyArr[iter - 4];
 				minConvergedP = minConvergedP < ConvergedPArr[iter - 4] ? minConvergedP : ConvergedPArr[iter - 4];
-				if (this->ConvergedVx > minConvergedVx || this->ConvergedVy > minConvergedVy)
+				if (this->ConvergenceVx > minConvergedVx || this->ConvergenceVy > minConvergedVy)
 				{
 					if (FVM_Grid::alpha_v > 0.05)
 						FVM_Grid::alpha_v *= 0.9;
@@ -784,7 +767,7 @@ void FVM_Grid::SolveSIMPLE(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& 
 					minConvergedVy *= 1.2;
 
 				}
-				if (this->ConvergedP > minConvergedP)
+				if (this->ConvergenceP > minConvergedP)
 				{
 					if (FVM_Grid::alpha_p > 0.05)
 						FVM_Grid::alpha_p *= 0.9;
@@ -812,8 +795,8 @@ void FVM_Grid::SolveSIMPLE(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& 
 void FVM_Grid::printEquations(string fileName, int iterNum)
 {
 	cout << endl << "Iter #" << iterNum;
-	cout << ", Convergence(Vx,Vy,P) = (" << this->ConvergedVx << ", ";
-	cout << this->ConvergedVy << ", " << this->ConvergedP << ")";
+	cout << ", Convergence(Vx,Vy,P) = (" << this->ConvergenceVx << ", ";
+	cout << this->ConvergenceVy << ", " << this->ConvergenceP << ")";
 	cout << endl << "		(aV,aP) = (" << FVM_Grid::alpha_v << "," << FVM_Grid::alpha_p << ")";
 }
 void FVM_Grid::printThermalEquations(string fileName)

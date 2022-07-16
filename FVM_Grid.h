@@ -2,23 +2,22 @@
 #define FVM_GridH
 #include <string>
 #include <fstream>
+#include <unordered_map>
+#include <functional>
 #include "bGrid.h"
 #include "Vector3D.h"
-#include <unordered_map>
 #include "Node.h"
 #include "NodeComposite.h"
-#include <functional>
+#include "TVD.h"
+#include "LiquidProperties.h"
 using namespace std;
 class Face;
 class Edge;
 class Vertex;
 class SquareMatrix;
+class TVD;
 typedef double(*fxy)(double x, double y);
 typedef fxy velocityField[2];
-struct LiquidProperties
-{
-	double density, viscosity, thermalConductionCoeff, heatCapacity;
-};
 class BoundaryValues
 {
 	void copyBody(const BoundaryValues& rhs);
@@ -43,10 +42,10 @@ class FVM_Grid
 	double thermalConductivity;
 	double density;
 	unordered_map<Edge*, double> dValue;
-	double ConvergedVx;
-	double ConvergedVy;
-	double ConvergedP;
-	double ConvergedT;
+	double ConvergenceVx;
+	double ConvergenceVy;
+	double ConvergenceP;
+	double ConvergenceT;
 	double Source_VxT;//source term in Vx equation: Source_VxT * T; 
 	double Source_VyT;//source term in Vy equation: Source_VyT * T;
 	double Source_TVx;//source term in Energy equation: Source_TVx * Vx;
@@ -61,9 +60,7 @@ class FVM_Grid
 	void SetThermalBoundaryConditions_internal(function<double(const Vector3D& P)> BC, GRID_DIRECTION side, string type/*Drichlit or Neumann*/);
 	double Lx;
 	double Ly;
-	public: enum TVD { NO_TVD, QUICK, VAN_LEER, VAN_ALBADA };
-	private: TVD tvd { NO_TVD };
-	double psi(double r);
+	TVD psi;
 public:
 	static double alpha_p;//based on Patankar's equation (6.24), page 128
 	static double alpha_v;//relaxation value for V
@@ -77,7 +74,7 @@ public:
 	void SetThermalConductionProblem(double conductivity);
 	void SetThermalConductionConvectionProblem(double conductivity, double Density);
 	void SetThermalConductionConvectionProblem(double conductivity, double Density, function<double(const Vector3D& P)> Velocity[2]);
-	void SetTVD(TVD TVD_Type = TVD::VAN_ALBADA);
+	void SetTVD(TVD::MODE TVD_Type = TVD::VAN_ALBADA);
 	void SetFlowProblem(const LiquidProperties& liq);
 	void SetFlowProblem(double Re);
 	void SetFlowForcedConvectionProblem(const LiquidProperties& liq);

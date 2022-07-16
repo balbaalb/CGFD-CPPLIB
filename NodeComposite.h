@@ -36,6 +36,7 @@ class NodeComposite
 	Vector* X; //stores the last solution
 	typedef unordered_map<Edge*, bool> EdgeConditionMap;
 	EdgeConditionMap* EdgeCondition;
+	bool initilized{ false };
 	void CopyBody(const NodeComposite& rhs);
 	void Reset();
 	void AddNode(GeoGraphObject* gPtr);
@@ -59,17 +60,19 @@ public:
 	void SetValueInEquations(GeoGraphObject* row, double value);
 	void SetValue(GeoGraphObject* objPtr, double value);
 	void SetValue(GeoGraphObject* objPtr, function<double(const Vector3D& P)> f);
+	void AddToValue(GeoGraphObject* objPtr, double value);
 	void SetConstantValue(GeoGraphObject* objPtr, double value);
 	void SetConstantValue(GeoGraphObject* objPtr, function<double(const Vector3D& P)> f);
 	void SetConstantNormalGradient(GeoGraphObject* objPtr, double value);
 	void SetConstantNormalGradient(GeoGraphObject* objPtr, function<double(const Vector3D& P)> f);
-	void SetValueAllNodes(function<double(const Vector3D& P)> f);
+	void SetValueAllNodes(function<double(const Vector3D& P)> func, bool basedOnVertices = true);
 	void Solve();
 	double SolveAndUpdate(double underRelaxation = 1);
 	double SolveAndAdd(double underRelaxation = 1);
 	void Populate();
 	Node* GetNode(GeoGraphObject* objPtr);
 	double GetValue(GeoGraphObject* objPtr);
+	double GetValue(GeoGraphObject* objPtr, bool& isValid);
 	double GetValue(const Vector3D& P);//O(n)
 	int GetNodeNumber(GeoGraphObject* objPtr);
 	void GetResults_Vertices(vector<Node*>& results);
@@ -80,10 +83,14 @@ public:
 	double GetSolution(GeoGraphObject* objPtr);
 	void GetK(SquareMatrix* Kr);
 	void GetC(Vector* Cr);
+	double GetK(GeoGraphObject* row, GeoGraphObject* col);
+	double GetC(GeoGraphObject* row);
 	void GetX(Vector* Xr);
 	void PrintEquations(ofstream& f, string label);
 	bool IsAtBoundary(Vertex* v);
 	void ApplyBC();
+	bool IsInitialized() const;
+	bool IsConstValue(GeoGraphObject* objPtr);
 };
 bool tester_NodeComposite(int& NumTests);
 #endif

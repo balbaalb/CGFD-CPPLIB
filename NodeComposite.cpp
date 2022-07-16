@@ -53,6 +53,7 @@ void NodeComposite::CopyBody(const NodeComposite& rhs)
 	this->EdgeCondition = 0;
 	if(rhs.EdgeCondition)
 		this->SetEdgeCondition(rhs.qe, rhs.EdgeCondition);
+	this->initilized = rhs.initilized;
 }
 void NodeComposite::Reset()
 {
@@ -83,6 +84,7 @@ void NodeComposite::Reset()
 	if (this->C)
 		delete this->C;
 	this->C = 0;
+	this->initilized = false;
 }
 void NodeComposite::AddNode(GeoGraphObject* gPtr)
 {
@@ -643,6 +645,7 @@ void NodeComposite::Initialize(QuadEdge* QE, Face* Fb, NODE_COMPOSITE_TYPE Type)
 		v = itv.Next();
 	}
 	this->AddDependentNode(fb);
+	this->initilized = true;
 }
 void NodeComposite::InitializeEquations()
 {
@@ -702,6 +705,12 @@ void NodeComposite::SetValue(GeoGraphObject* objPtr, function<double(const Vecto
 		n->value = f(P);
 	}
 }
+void NodeComposite::AddToValue(GeoGraphObject* objPtr, double value)
+{
+	Node* n = objPtr ? this->GetNode(objPtr) : 0;
+	if (n)
+		n->value += value;
+}
 void NodeComposite::SetConstantValue(GeoGraphObject* objPtr, double value)
 {
 	this->constValues[objPtr] = value;
@@ -723,7 +732,7 @@ void NodeComposite::SetConstantNormalGradient(GeoGraphObject* objPtr, function<d
 	double value = f(P);
 	this->SetConstantNormalGradient(objPtr, value);
 }
-void NodeComposite::SetValueAllNodes(function<double(const Vector3D& P)> f)
+void NodeComposite::SetValueAllNodes(function<double(const Vector3D& P)> func, bool basedOnVertices)
 {
 	VertexIterator itv(this->qe);
 	Vertex* v = itv.Next();
@@ -731,12 +740,40 @@ void NodeComposite::SetValueAllNodes(function<double(const Vector3D& P)> f)
 		Node* n = this->GetNode(v);
 		if (n) {
 			Vector3D P = n->GetPoint();
-			double val = f(P);
+			double val = func(P);
 			n->value = val;
 		}
 		v = itv.Next();
 	}
-	this->populate_basedOn_VERTICES();
+	if(basedOnVertices)
+		this->populate_basedOn_VERTICES();
+	else
+	{
+		EdgeIterator ite(this->qe);
+		Edge* e = ite.Next();
+		while (e)
+		{
+			Node* n = this->GetNode(e);
+			if (n) {
+				Vector3D P = n->GetPoint();
+				double val = func(P);
+				n->value = val;
+			}
+			e = ite.Next();
+		}
+		FaceIterator itf(this->qe);
+		Face* face = itf.Next();
+		while (face)
+		{
+			Node* n = this->GetNode(face);
+			if (n) {
+				Vector3D P = n->GetPoint();
+				double val = func(P);
+				n->value = val;
+			}
+			face = itf.Next();
+		}
+	}
 }
 void NodeComposite::Solve()
 {
@@ -787,6 +824,20 @@ Node* NodeComposite::GetNode(GeoGraphObject* objPtr)
 double NodeComposite::GetValue(GeoGraphObject* objPtr)
 {
 	return this->NodeHash[objPtr]->value;
+}
+double NodeComposite::GetValue(GeoGraphObject* objPtr, bool& isValid)
+{
+	isValid = false;
+	if (this->IsInitialized())
+	{
+		Node* n = this->NodeHash[objPtr];
+		if (n)
+		{
+			isValid = true;
+			return n->value;
+		}
+	}
+	return 0.0;
 }
 double NodeComposite::GetValue(const Vector3D& P)//O(n)
 {
@@ -947,6 +998,25 @@ void NodeComposite::GetC(Vector* Cr)
 		delete Cr;
 	Cr = new Vector(*this->C);
 }
+double NodeComposite::GetK(GeoGraphObject* row, GeoGraphObject* col)
+{
+	if (!this->isDependent[row] && !this->isDependent[col])
+	{
+		int i = this->NodeHash[row]->index;
+		int j = this->NodeHash[col]->index;
+		return (*K)(i, j);
+	}
+	return 0;
+}
+double NodeComposite::GetC(GeoGraphObject* row)
+{
+	if (!this->isDependent[row])
+	{
+		int i = this->NodeHash[row]->index;
+		return (*C)(i);
+	}
+	return 0.0;
+}
 void NodeComposite::GetX(Vector* Xr)
 {
 	if (Xr)
@@ -985,6 +1055,15 @@ bool NodeComposite::IsAtBoundary(Vertex* v)
 void NodeComposite::ApplyBC()
 {
 	this->ApplyBC_internal("Apply");
+}
+bool NodeComposite::IsInitialized() const
+{
+	return this->initilized;
+}
+bool NodeComposite::IsConstValue(GeoGraphObject* objPtr)
+{
+	auto constValueIter = this->constValues.find(objPtr);
+	return constValueIter != this->constValues.end();
 }
 bool tester_NodeComposite(int& NumTests) 
 {

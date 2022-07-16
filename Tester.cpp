@@ -28,13 +28,12 @@
 #include "WeatherillHassan.h"
 #include "RuppertShewchuk.h"
 #include "AdvancingFront.h"
-#include "FVM_Grid.h"
-#include "FVM.h"
 #include "ShapeFunction.h"
 #include "bGrid.h"
 #include "Node.h"
 #include "NodeComposite.h"
-/*#include "bqeToTiffConverter.h"*/
+#include "FVM_Grid.h"
+#include "FVM.h"
 void Tester()
 {
 	int NumTests = 0;
@@ -156,10 +155,6 @@ void Tester()
 		correct = tester_ShapeFunction(NumTests);//+3
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
-		std::cout << std::endl << "FVM test ...";
-		correct = tester_FVM(NumTests);//+14
-		std::cout << (correct ? "okay!" : "ERROR!");
-		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "Grid test ...";
 		correct = tester_bGrid(NumTests);//+1
 		std::cout << (correct ? "okay!" : "ERROR!");
@@ -168,12 +163,16 @@ void Tester()
 		correct = tester_Node(NumTests);//+1
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
-		std::cout << std::endl << "tester_FVM_Grid test ...";
-		correct = tester_FVM_Grid(NumTests);//+10
-		std::cout << (correct ? "okay!" : "ERROR!");
-		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "NodeComposite test ...";
 		correct = tester_NodeComposite(NumTests);//+1
+		std::cout << (correct ? "okay!" : "ERROR!");
+		//---------------------------------------------------------------------------------
+		std::cout << std::endl << "FVM test ...";
+		correct = tester_FVM(NumTests);//+14
+		std::cout << (correct ? "okay!" : "ERROR!");
+		//---------------------------------------------------------------------------------
+		std::cout << std::endl << "tester_FVM_Grid test ...";
+		correct = tester_FVM_Grid(NumTests);//+10
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
 		if (NumTests < 133)
