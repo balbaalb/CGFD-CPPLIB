@@ -17,6 +17,7 @@
 #include "bPolygon.h"
 #include "MathUtils.h"
 #include "QuadEdgeIndex.h"
+#include "BitMap.h"
 void Triangulation::CopyBody(const Triangulation& rhs)
 {
 	this->Mesh2D = 0;
@@ -1061,6 +1062,43 @@ void Triangulation::Read(string fileName)
 	QuadEdge qe;
 	qe.Read(fileName);
 	(*this) << qe;
+}
+void Triangulation::Draw(string fileName)
+{
+	
+	double xMin = this->GetMinX();
+	double xMax = this->GetMaxX();
+	double yMin = this->GetMinY();
+	double yMax = this->GetMaxY();
+	const double WIDTH = 800;
+	const double HEIGHT = 800;
+	auto xp = [xMin, xMax, WIDTH](double x)->int {
+		return int((x - xMin) / (xMax - xMin) * WIDTH);
+	};
+	auto yp = [yMin, yMax, HEIGHT](double x)->int {
+		return int((x - yMin) / (yMax - yMin) * HEIGHT);
+	};
+	bBitMap::BitMap bmp((int) WIDTH + 100, (int) HEIGHT + 100);
+	EdgeIterator ite(this->GetMesh2D());
+	Edge* e = ite.Next();
+	while(e)
+	{
+		Vector3D P = e->GetOrig()->GetPoint();
+		Vector3D Q = e->GetDest()->GetPoint();
+		int x0 = xp(P(0));
+		int x1 = xp(Q(0));
+		int y0 = yp(P(1));
+		int y1 = yp(Q(1));
+		int tmax = 1000;
+		for (int t = 0; t <= tmax; ++t)
+		{
+			int x = x0 + t * (x1 - x0) / tmax;
+			int y = y0 + t * (y1 - y0) / tmax;
+			bmp.Draw1Pixel(x, y, 0, 0, 0);
+		}
+		e = ite.Next();
+	}
+	bmp.GenerateBMP(fileName);
 }
 Triangulation Triangulation::OffDiagonalGrid(int Nx, int Ny, double Lx, double Ly)
 {
@@ -2567,6 +2605,7 @@ bool tester_Triangulation_2(int& NumTests)
 	int Nf = 2 * Nx * Ny + 1;
 	Triangulation T = Triangulation::OffDiagonalGrid(Nx, Ny, Lx, Ly);
 	//T.PrintTriangulation();
+	T.Draw("..\\Data\\tester_Triangulation_2.bmp");
 	if (T.GetMesh2D()->NumVertices() != Nv || T.GetMesh2D()->NumEdges() !=  Ne || T.GetMesh2D()->NumFaces() != Nf)
 		return false;
 	if (!T.TestIntegrity())
@@ -2584,6 +2623,7 @@ bool tester_Triangulation_3(int& NumTests)
 	int Ne = 3 * Nx * Ny + Nx + Ny;
 	int Nf = 2 * Nx * Ny + 1;
 	Triangulation T = Triangulation::OffDiagonalGrid(Nx, Ny, Lx, Ly);
+	T.Draw("..\\Data\\tester_Triangulation_3.bmp");
 	//T.PrintTriangulation();
 	if (T.GetMesh2D()->NumVertices() != Nv || T.GetMesh2D()->NumEdges() != Ne || T.GetMesh2D()->NumFaces() != Nf)
 		return false;
@@ -2634,6 +2674,7 @@ bool tester_Triangulation_6(int& NumTests)
 	vector<Vector3D> input = { A,B,C,D,E,F,G,H };
 	Triangulation T = DelaunayLifting::Triangulate(input);
 	T.PrintTriangulation("..\\Data", "0");
+	T.Draw("..\\Data\\tester_Triangulation_6.bmp");
 	QuadEdge* qe = T.GetMesh2D();
 	Vertex* v[8];
 	VertexIterator itv(qe);

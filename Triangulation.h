@@ -94,6 +94,7 @@ public:
 	void GetPoints(vector<Vector3D>& points);
 	void Write(string fileName);
 	void Read(string fileName);
+	void Draw(string fileName);
 	static Triangulation OffDiagonalGrid(int Nx, int Ny, double Lx, double Ly);
 };
 bool tester_Triangulation(int& NumTests);
