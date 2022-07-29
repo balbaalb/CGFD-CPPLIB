@@ -1072,13 +1072,14 @@ void Triangulation::Draw(string fileName)
 	double yMax = this->GetMaxY();
 	const double WIDTH = 800;
 	const double HEIGHT = 800;
-	auto xp = [xMin, xMax, WIDTH](double x)->int {
-		return int((x - xMin) / (xMax - xMin) * WIDTH);
+	const double PADDING = 100;
+	auto xp = [xMin, xMax, WIDTH, PADDING](double x)->int {
+		return int((x - xMin) / (xMax - xMin) * WIDTH + PADDING / 2.0);
 	};
-	auto yp = [yMin, yMax, HEIGHT](double x)->int {
-		return int((x - yMin) / (yMax - yMin) * HEIGHT);
+	auto yp = [yMin, yMax, HEIGHT, PADDING](double x)->int {
+		return int((x - yMin) / (yMax - yMin) * HEIGHT + PADDING / 2.0);
 	};
-	bBitMap::BitMap bmp((int) WIDTH + 100, (int) HEIGHT + 100);
+	bBitMap::BitMap bmp(int(WIDTH + PADDING), int(HEIGHT + PADDING));
 	EdgeIterator ite(this->GetMesh2D());
 	Edge* e = ite.Next();
 	while(e)

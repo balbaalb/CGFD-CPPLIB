@@ -1,5 +1,3 @@
-#include "stdafx.h"
-//FXMOBJECTS specific header files
 #include "Element.h"
 Element2D::Element2D(Face* f)
 {

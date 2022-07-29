@@ -1,3 +1,4 @@
+#include <math.h>
 #include "ShapeFunction.h"
 void ShapeFunction::CopyBody(const ShapeFunction& rhs)
 {

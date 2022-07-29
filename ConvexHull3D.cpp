@@ -1,3 +1,5 @@
+#include "math.h"
+#include <cmath>
 #include "ConvexHull3D.h"
 #include "QuadEdge.h"
 #include "Vector3D.h"

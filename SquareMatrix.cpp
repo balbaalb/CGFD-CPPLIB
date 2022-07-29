@@ -1,3 +1,4 @@
+#include <math.h>
 #include "SquareMatrix.h"
 SquareMatrix::SquareMatrix(int N) : bMatrix(N,N)
 {

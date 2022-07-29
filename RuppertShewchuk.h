@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <list>
 #include "Triangulation.h"
 #include "Vector3D.h"
 class Edge;

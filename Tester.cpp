@@ -34,6 +34,7 @@
 #include "NodeComposite.h"
 #include "FVM_Grid.h"
 #include "FVM.h"
+#include "BitMap.h"
 void Tester()
 {
 	int NumTests = 0;
