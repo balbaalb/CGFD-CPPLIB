@@ -4,7 +4,6 @@
 #include <math.h>
 #define pi M_PI
 void SolveQuad(double a, double b, double c, double& Root1Real, double& Root1imag, double& Root2Real, double& Root2imag);
-void swap(double& a, double& b);
 bool IsEqual(double a, double b);
 bool IsNotEqual(double a, double b);
 //=======================================================================================

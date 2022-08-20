@@ -1,5 +1,6 @@
 #include <cmath>
 #include <MathUtils.h>
+#include <algorithm>
 void SolveQuad(double a,double b, double c, double& Root1Real,double& Root1imag, double& Root2Real, double& Root2imag)
 //solving a*x^2+b*x+c = 0.
 {
@@ -35,15 +36,9 @@ void SolveQuad(double a,double b, double c, double& Root1Real,double& Root1imag,
 	}
 	if ((Root1Real > Root2Real) || (Root1Real == Root2Real && Root1imag > Root2imag))
 	{
-		swap(Root1Real, Root2Real);
-		swap(Root1imag, Root2imag);
+		std::swap(Root1Real, Root2Real);
+		std::swap(Root1imag, Root2imag);
 	}
-}
-void swap(double& a, double& b)
-{
-	double c = a;
-	a = b;
-	b = c;
 }
 bool IsEqual(double a, double b)
 {
@@ -59,12 +54,6 @@ bool tester_MathUtils(int& NumTests)
 	double u = 1550.126;
 	if (!IsEqual(u, 1550.126) || IsNotEqual(u, 1550.126))
 		return false; 
-	double v = 100, w = -1000;
-	swap(v, w);
-	if (IsNotEqual(v, -1000) || IsNotEqual(w, 100))
-		return false;
-	if (!IsEqual(v, -1000) || !IsEqual(w, 100))
-		return false;
 	double a, b, c, Root1Real, Root1imag, Root2Real, Root2imag;
 	a = b = c = Root1Real = Root1imag = Root2Real = Root2imag = 0;
 	a = 1; b = -8; c = 15;
