@@ -27,7 +27,7 @@ public:
 	BoundaryValues(double v);
 	BoundaryValues(const BoundaryValues& rhs);
 	~BoundaryValues();
-	void operator=(const BoundaryValues& rhs);
+	BoundaryValues& operator=(const BoundaryValues& rhs);
 	void Set(GRID_DIRECTION side, double value);
 };
 class FVM_Grid

@@ -32,9 +32,10 @@ Edge::Edge(const Edge& e)
 	this->CopyBody(e);
 	this->type = 0;
 }
-void Edge::operator=(const Edge& e)
+Edge& Edge::operator=(const Edge& e)
 {
 	this->CopyBody(e);
+	return *this;
 }
 void Edge::SetOrig(Vertex* v)
 {

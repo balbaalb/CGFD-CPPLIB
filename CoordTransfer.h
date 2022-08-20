@@ -14,7 +14,7 @@ public:
 	CoordTransfer();
 	CoordTransfer(const CoordTransfer& rhs);
 	~CoordTransfer();
-	void operator=(const CoordTransfer& rhs);
+	CoordTransfer& operator=(const CoordTransfer& rhs);
 	void Translate(double x, double y = 0, double z = 0);//Needs Testing
 	void Translate(const Vector3D& C);//Needs Testing
 	void Rotate(double theta);//Needs Testing

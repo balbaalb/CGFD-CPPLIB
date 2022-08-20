@@ -24,9 +24,10 @@ Face::Face(const Face& f)
 {
 	this->CopyBody(f);
 }
-void Face::operator=(const Face& f)
+Face& Face::operator=(const Face& f)
 {
 	this->CopyBody(f);
+	return *this;
 }
 Edge* Face::GetEdge() const
 {

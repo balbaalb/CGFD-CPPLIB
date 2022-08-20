@@ -12,7 +12,7 @@ public:
 	int index;//For debugging only
 	EdgeContainer(Edge* e);
 	EdgeContainer(const EdgeContainer& E);
-	void operator=(const EdgeContainer& E);
+	EdgeContainer& operator=(const EdgeContainer& E);
 };
 /*template <class T>*/ 
 class EdgeList
@@ -25,7 +25,7 @@ public:
 	EdgeList(int Order = 1000);
 	EdgeList(const EdgeList& rhs);
 	~EdgeList();
-	void operator=(const EdgeList& rhs);
+	EdgeList& operator=(const EdgeList& rhs);
 	int GetNumEdgeContainers() const;
 	void AddContainer(Edge* e);
 	void RemoveContainer(EdgeContainer* E);

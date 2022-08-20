@@ -41,7 +41,7 @@ public:
 	bPolygon();
 	bPolygon(const bPolygon& rhs);
 	~bPolygon();
-	void operator=(const bPolygon& rhs);
+	bPolygon& operator=(const bPolygon& rhs);
 	QuadEdge* GetQuadEdgePtr() const;
 	void AddVertex(const Vector3D& p);
 	void AddVerticesAndClose(const vector<Vector3D>& points);

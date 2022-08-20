@@ -221,10 +221,11 @@ bPolygon::~bPolygon()
 {
 	this->DeleteBody();
 }
-void bPolygon::operator=(const bPolygon& rhs)
+bPolygon& bPolygon::operator=(const bPolygon& rhs)
 {
 	this->DeleteBody();
 	this->CopyBody(rhs);
+	return *this;
 }
 QuadEdge* bPolygon::GetQuadEdgePtr() const
 {

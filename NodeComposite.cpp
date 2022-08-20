@@ -571,10 +571,11 @@ NodeComposite::~NodeComposite()
 {
 	this->Reset();
 }
-void NodeComposite::operator=(const NodeComposite& rhs)
+NodeComposite& NodeComposite::operator=(const NodeComposite& rhs)
 {
 	this->Reset();
 	this->CopyBody(rhs);
+	return *this;
 }
 void NodeComposite::SetEdgeCondition(QuadEdge* QE, EdgeConditionMap* f)
 {

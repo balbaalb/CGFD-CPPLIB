@@ -11,7 +11,7 @@ public:
 	Triangle();
 	Triangle(const Vector3D& A, const Vector3D& B, const Vector3D& C);
 	Triangle(const Triangle& rhs);
-	void operator=(const Triangle& rhs);
+	Triangle& operator=(const Triangle& rhs);
 	double GetArea() const;
 	double GetPerimeter() const;
 	Vector3D GetPoint(int i) const;

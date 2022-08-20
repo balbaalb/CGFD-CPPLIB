@@ -25,7 +25,7 @@ public:
 	ShapeFunction(const Triangle& T, const Vector3D& uh);//for Pe --> inifinity
 	ShapeFunction(const ShapeFunction& rhs);
 	~ShapeFunction();
-	void operator=(const ShapeFunction& rhs);
+	ShapeFunction& operator=(const ShapeFunction& rhs);
 	double GetValue(int i, const Vector3D& P) const;
 	Vector3D Grad(int i, const Vector3D& P) const;
 };

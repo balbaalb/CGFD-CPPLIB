@@ -20,10 +20,11 @@ Vector3D::Vector3D(const bMatrix& U)
 {
 	this->CopyBody(U);
 }
-void Vector3D::operator=(const Vector3D& P)
+Vector3D& Vector3D::operator=(const Vector3D& P)
 {
 	this->DeleteBody();
 	this->CopyBody(P);
+	return *this;
 }
 Vector3D Vector3D::CrossProduct(const Vector3D& Q) const
 {

@@ -13,7 +13,7 @@ public:
 	Plane(const Vector3D& n, double D);
 	Plane(const Vector3D& n, const Vector3D& ref);
 	Plane(const Vector3D& A, const Vector3D& B, const Vector3D& D);
-	void operator=(const Plane& P);
+	Plane& operator=(const Plane& P);
 	void SetNormalAndConst(const Vector3D& n, double C);
 	void SetNormalAndRef(const Vector3D& n, const Vector3D& ref);
 	void SetThreePoints(const Vector3D& A, const Vector3D& B, const Vector3D& C);

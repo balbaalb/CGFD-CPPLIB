@@ -10,7 +10,7 @@ public:
 	Line();
 	Line(const Vector3D& x0, const Vector3D& x1);
 	Line(const Line& L);
-	void operator=(const Line& rhs);
+	Line& operator=(const Line& rhs);
 	void SetTwoPoints(const Vector3D& start, const Vector3D& end);
 	void SetPointAndVector(const Vector3D& start, const Vector3D& dx);
 	Vector3D GetStartPoint() const;

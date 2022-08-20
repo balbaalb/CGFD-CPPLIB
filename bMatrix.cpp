@@ -32,10 +32,11 @@ bMatrix::bMatrix(const bMatrix& A)
 {
 	this->CopyBody(A);
 }
-void bMatrix::operator=(const bMatrix& A)
+bMatrix& bMatrix::operator=(const bMatrix& A)
 {
 	this->DeleteBody();
 	this->CopyBody(A);
+	return *this;
 }
 int bMatrix::GetDim1() const
 {

@@ -17,7 +17,7 @@ public:
 	Vertex(double X = 0, double Y = 0, double Z = 0);
 	Vertex(const Vertex& v);
 	Vertex(const Vector3D& v);
-	void operator=(const Vertex& v);
+	Vertex& operator=(const Vertex& v);
 	Edge* GetEdge() const;
 	void SetEdge(Edge* e);
 	Vector3D GetPoint();//need this one because it's a mandatory part of class GeoGraphObject

@@ -11,7 +11,7 @@ protected:
 public:
 	Vector(int M = 1);
 	Vector(const bMatrix& A);
-	void operator=(const Vector& U);
+	Vector& operator=(const Vector& U);
 	double& operator()(int i);
 	const double& operator()(int i) const;
 	Vector operator*(double a) const;

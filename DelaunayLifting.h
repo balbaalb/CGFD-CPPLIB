@@ -21,7 +21,7 @@ class DelaunayLifting
 	DelaunayLifting();
 	DelaunayLifting(const DelaunayLifting& rhs);
 	~DelaunayLifting();
-	void operator=(const DelaunayLifting& rhs);
+	DelaunayLifting& operator=(const DelaunayLifting& rhs);
 	void Build(const vector<Vector3D>& input);
 	void Build(const vector<Vector3D>& input, const vector<int>& boundary);
 	void Build(const vector<Vector3D>& input, const vector<int>& Boundary, 

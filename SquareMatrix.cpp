@@ -8,10 +8,11 @@ SquareMatrix::SquareMatrix(const SquareMatrix& rhs)
 {
 	this->bMatrix::CopyBody(rhs);
 }
-void SquareMatrix::operator=(const SquareMatrix& rhs)
+SquareMatrix& SquareMatrix::operator=(const SquareMatrix& rhs)
 {
 	this->bMatrix::DeleteBody();
 	this->bMatrix::CopyBody(rhs);
+	return *this;
 }
 int SquareMatrix::GetDim() const
 {

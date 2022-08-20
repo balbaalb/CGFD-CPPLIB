@@ -54,9 +54,10 @@ BoundaryValues::~BoundaryValues()
 		this->boundaryValue[j] = NULL;
 	}
 }
-void BoundaryValues::operator=(const BoundaryValues& rhs)
+BoundaryValues& BoundaryValues::operator=(const BoundaryValues& rhs)
 {
 	this->copyBody(rhs);
+	return *this;
 }
 void BoundaryValues::Set(GRID_DIRECTION side, double value)
 {

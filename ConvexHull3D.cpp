@@ -286,10 +286,11 @@ Vertex* ConvexHull3D::AddPoint(const Vector3D& p, int index)
 		return v;
 	}
 }
-void ConvexHull3D::operator=(const ConvexHull3D& rhs)
+ConvexHull3D& ConvexHull3D::operator=(const ConvexHull3D& rhs)
 {
 	this->DeleteBody();
 	this->CopyBody(rhs);
+	return *this;
 }
 void ConvexHull3D::Build(const vector<Vector3D>& input)
 {

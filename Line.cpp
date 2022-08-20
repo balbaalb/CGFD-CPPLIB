@@ -17,10 +17,11 @@ Line::Line(const Line& L)
 {
 	this->CopyBody(L);
 }
-void Line::operator=(const Line& rhs)
+Line& Line::operator=(const Line& rhs)
 {
 	this->DeleteBody();
 	this->CopyBody(rhs);
+	return *this;
 }
 void Line::SetTwoPoints(const Vector3D& start, const Vector3D& end)
 {

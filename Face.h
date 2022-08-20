@@ -16,7 +16,7 @@ public:
 	Face* prev;
 	Face();
 	Face(const Face& f);
-	void operator=(const Face& f);
+	Face& operator=(const Face& f);
 	Edge* GetEdge() const;
 	void SetEdge(Edge* e);
 	int GetDegree() const;

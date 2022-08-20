@@ -35,7 +35,7 @@ public:
 	Triangulation();
 	Triangulation(const Triangulation& rhs);
 	~Triangulation();
-	void operator=(const Triangulation& rhs);
+	Triangulation& operator=(const Triangulation& rhs);
 	void operator<<(const QuadEdge& QE);
 	QuadEdge* GetMesh2D();
 	Face* GetBoundary();

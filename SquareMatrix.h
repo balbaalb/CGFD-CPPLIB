@@ -7,7 +7,7 @@ class SquareMatrix : public bMatrix
 public:
 	SquareMatrix(int N = 1);
 	SquareMatrix(const SquareMatrix& rhs);
-	void operator=(const SquareMatrix& rhs);
+	SquareMatrix& operator=(const SquareMatrix& rhs);
 	int GetDim() const;
 	double MakeUpperTriangular(Vector* b = 0);
 	Vector Solve(const Vector& B) const;

@@ -79,10 +79,11 @@ DelaunayLifting::~DelaunayLifting()
 {
 	this->DeleteBody();
 }
-void DelaunayLifting::operator=(const DelaunayLifting& rhs)
+DelaunayLifting& DelaunayLifting::operator=(const DelaunayLifting& rhs)
 {
 	this->DeleteBody();
 	this->CopyBody(rhs);
+	return *this;
 }
 void DelaunayLifting::Build(const vector<Vector3D>& input)
 {

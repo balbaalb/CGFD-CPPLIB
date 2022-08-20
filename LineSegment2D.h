@@ -16,7 +16,7 @@ public:
 	LineSegment2D();
 	LineSegment2D(const Vector3D& A, const Vector3D& B);
 	LineSegment2D(const LineSegment2D& rhs);
-	void operator=(const LineSegment2D& rhs);
+	LineSegment2D& operator=(const LineSegment2D& rhs);
 	double GetArea() const;
 	double GetPerimeter() const;
 	Vector3D GetPoint(int i) const;

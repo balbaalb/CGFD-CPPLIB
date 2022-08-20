@@ -24,7 +24,7 @@ protected:
 public:
 	bMatrix(int M = 1, int N = 1);
 	bMatrix(const bMatrix& A);
-	void operator=(const bMatrix& A);
+	bMatrix& operator=(const bMatrix& A);
 	double& operator()(int i, int j);
 	const double& operator()(int i, int j) const;
 	int GetDim1() const;

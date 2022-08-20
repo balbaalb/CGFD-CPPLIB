@@ -14,10 +14,11 @@ EdgeContainer::EdgeContainer(const EdgeContainer& E)
 	this->prev = 0;
 	this->index = -1;
 }
-void EdgeContainer::operator=(const EdgeContainer& E)
+EdgeContainer& EdgeContainer::operator=(const EdgeContainer& E)
 {
 	this->edge = E.edge;
 	this->index = -1;
+	return *this;
 }
 void EdgeList::CopyBody(const EdgeList& rhs)
 {
@@ -48,10 +49,11 @@ EdgeList::~EdgeList()
 {
 	this->Reset();
 }
-void EdgeList::operator=(const EdgeList& rhs)
+EdgeList& EdgeList::operator=(const EdgeList& rhs)
 {
 	this->Reset();
 	this->CopyBody(rhs);
+	return *this;
 }
 EdgeContainer* EdgeList::GetContainer(int ei) const
 {

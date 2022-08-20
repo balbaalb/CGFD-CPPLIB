@@ -11,7 +11,7 @@ public:
 	Vector3D(double x = 0, double y = 0, double z = 0);
 	Vector3D(const Vector& U);
 	Vector3D(const bMatrix& U);
-	void operator=(const Vector3D& P);
+	Vector3D& operator=(const Vector3D& P);
 	Vector3D operator&&(const Vector3D& Q) const;
 	void SetCoords(double x = 0, double y = 0, double z = 0);
 	Vector3D rotate_x(double tx) const;

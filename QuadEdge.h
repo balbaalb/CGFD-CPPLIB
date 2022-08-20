@@ -45,7 +45,7 @@ public:
 	QuadEdge();
 	QuadEdge(const QuadEdge& g);//O(n^2)
 	~QuadEdge();
-	void operator=(const QuadEdge& g);//O(n^2)
+	QuadEdge& operator=(const QuadEdge& g);//O(n^2)
 	void SetPrototype(Face* prototype);
 	void SetPrototype(Edge* prototype);
 	void SetPrototype(Vertex* prototype);

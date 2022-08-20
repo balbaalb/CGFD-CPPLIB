@@ -11,12 +11,13 @@ Node::Node(const Node& rhs)
 {
 	(*this) = rhs;
 }
-void Node::operator=(const Node& rhs)
+Node& Node::operator=(const Node& rhs)
 {
 	this->host = rhs.host; 
 	this->index = rhs.index;
 	this->value = rhs.value;
 	this->type = rhs.type;
+	return *this;
 }
 GeoGraphObject* Node::GetHost()
 {
@@ -42,10 +43,11 @@ NodeT::NodeT(const Node& rhs) : Node(rhs)
 {
 	this->T = 0;
 }
-void NodeT::operator=(const NodeT& rhs)
+NodeT& NodeT::operator=(const NodeT& rhs)
 {
 	this->Node::operator=(rhs);
 	this->T = rhs.T;
+	return *this;
 }
 NodeV::NodeV(GeoGraphObject* Host) : Node(Host)
 {
@@ -59,12 +61,13 @@ NodeV::NodeV(const NodeV& rhs) : Node(rhs)
 	this->d = rhs.d;
 	this->Horizontal = rhs.Horizontal;
 }
-void NodeV::operator=(const NodeV& rhs)
+NodeV& NodeV::operator=(const NodeV& rhs)
 {
 	this->Node::operator=(rhs);
 	this->V = rhs.V;
 	this->d = rhs.d;
 	this->Horizontal = rhs.Horizontal;
+	return *this;
 }
 NodeTV::NodeTV(GeoGraphObject* Host) : Node(Host)
 {
@@ -80,13 +83,14 @@ NodeTV::NodeTV(const NodeTV& rhs) : Node(rhs)
 	this->vy = rhs.vy;
 	this->Tprime = rhs.Tprime;
 }
-void NodeTV::operator=(const NodeTV& rhs)
+NodeTV& NodeTV::operator=(const NodeTV& rhs)
 {
 	this->Node::operator=(rhs);
 	this->T = rhs.T;
 	this->vx = rhs.vx;
 	this->vy = rhs.vy;
 	this->Tprime = rhs.Tprime;
+	return *this;
 }
 bool tester_Node(int& NumTests)
 {

@@ -62,10 +62,11 @@ Triangulation::~Triangulation()
 {
 	this->DeleteBody();
 }
-void Triangulation::operator=(const Triangulation& rhs)
+Triangulation& Triangulation::operator=(const Triangulation& rhs)
 {
 	this->DeleteBody();
 	this->CopyBody(rhs);
+	return *this;
 }
 void Triangulation::operator<<(const QuadEdge& QE)
 {

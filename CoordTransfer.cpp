@@ -44,10 +44,11 @@ CoordTransfer::~CoordTransfer()
 {
 	this->DeleteBody();
 }
-void CoordTransfer::operator=(const CoordTransfer& rhs)
+CoordTransfer& CoordTransfer::operator=(const CoordTransfer& rhs)
 {
 	this->DeleteBody();
 	this->CopyBody(rhs);
+	return *this;
 }
 void CoordTransfer::Translate(double x, double y, double z)
 {

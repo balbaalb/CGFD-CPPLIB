@@ -55,7 +55,7 @@ public:
 	ConvexHull3D();
 	ConvexHull3D(const ConvexHull3D& rhs);
 	~ConvexHull3D();
-	void operator=(const ConvexHull3D& rhs);
+	ConvexHull3D& operator=(const ConvexHull3D& rhs);
 	Vertex* AddPoint(const Vector3D& p, int index =-1);
 	void Build(const vector<Vector3D>& input);
 	QuadEdge* GetHull() const;

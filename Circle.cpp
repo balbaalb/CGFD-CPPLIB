@@ -19,9 +19,10 @@ Circle::Circle(const Circle& c)
 {
 	this->CopyBody(c);
 }
-void Circle::operator=(const Circle& c)
+Circle& Circle::operator=(const Circle& c)
 {
 	this->CopyBody(c);
+	return *this;
 }
 double Circle::Area() const
 {

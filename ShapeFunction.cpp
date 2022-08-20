@@ -123,10 +123,11 @@ ShapeFunction::~ShapeFunction()
 {
 	this->DeleteBody();
 }
-void ShapeFunction::operator=(const ShapeFunction& rhs)
+ShapeFunction& ShapeFunction::operator=(const ShapeFunction& rhs)
 {
 	this->DeleteBody();
 	this->CopyBody(rhs);
+	return *this;
 }
 double ShapeFunction::GetValue(int i, const Vector3D& P) const
 {

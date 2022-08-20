@@ -38,7 +38,7 @@ public:
 	int index;//For debugging only
 	Edge();
 	Edge(const Edge& e);
-	void operator=(const Edge& e);
+	Edge& operator=(const Edge& e);
 	void SetOrig(Vertex* v);
 	void SetDest(Vertex* v);
 	void SetRight(Face* f);

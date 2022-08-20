@@ -25,10 +25,11 @@ Plane::Plane(const Vector3D& A, const Vector3D& B, const Vector3D& C)
 {
 	this->SetThreePoints(A, B, C);
 }
-void Plane::operator=(const Plane& P)
+Plane& Plane::operator=(const Plane& P)
 {
 	this->DeleteBody();
 	this->CopyBody(P);
+	return *this;
 }
 void Plane::SetNormalAndConst(const Vector3D& n, double D)
 {

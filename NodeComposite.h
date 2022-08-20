@@ -51,7 +51,7 @@ public:
 	NodeComposite();
 	NodeComposite(const NodeComposite& rhs);
 	~NodeComposite();
-	void operator=(const NodeComposite& rhs);
+	NodeComposite& operator=(const NodeComposite& rhs);
 	void SetEdgeCondition(QuadEdge* QE, EdgeConditionMap* f);//use this before intilization
 	void Initialize(QuadEdge* QE, Face* Fb, NODE_COMPOSITE_TYPE Type);
 	void InitializeEquations();

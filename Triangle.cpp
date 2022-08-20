@@ -22,9 +22,10 @@ Triangle::Triangle(const Triangle& rhs)
 {
 	this->CopyBody(rhs);
 }
-void Triangle::operator=(const Triangle& rhs)
+Triangle& Triangle::operator=(const Triangle& rhs)
 {
 	this->CopyBody(rhs);
+	return *this;
 }
 double Triangle::GetArea() const
 {

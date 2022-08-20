@@ -14,7 +14,7 @@ public:
 	string type;
 	Node(GeoGraphObject* Host = 0);
 	Node(const Node& rhs);
-	void operator=(const Node& rhs);
+	Node& operator=(const Node& rhs);
 	GeoGraphObject* GetHost();
 	void SetHost(GeoGraphObject* Host);
 	Vector3D GetPoint();
@@ -26,7 +26,7 @@ public:
 	NodeT(GeoGraphObject* Host = 0);
 	NodeT(const NodeT& rhs);
 	NodeT(const Node& rhs);
-	void operator=(const NodeT& rhs);
+	NodeT& operator=(const NodeT& rhs);
 };
 class NodeV : public virtual Node
 {
@@ -36,7 +36,7 @@ public:
 	double d;//for SIMPLE equations 
 	NodeV(GeoGraphObject* Host = 0);
 	NodeV(const NodeV& rhs);
-	void operator=(const NodeV& rhs);
+	NodeV& operator=(const NodeV& rhs);
 };
 class NodeTV : public virtual Node
 {
@@ -47,7 +47,7 @@ public:
 	double Tprime;
 	NodeTV(GeoGraphObject* Host = 0);
 	NodeTV(const NodeTV& rhs);
-	void operator=(const NodeTV& rhs);
+	NodeTV& operator=(const NodeTV& rhs);
 };
 bool tester_Node(int& NumTests);
 #endif

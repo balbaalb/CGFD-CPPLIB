@@ -20,9 +20,10 @@ LineSegment2D::LineSegment2D(const LineSegment2D& rhs)
 {
 	this->CopyBody(rhs);
 }
-void LineSegment2D::operator=(const LineSegment2D& rhs)
+LineSegment2D& LineSegment2D::operator=(const LineSegment2D& rhs)
 {
 	this->CopyBody(rhs);
+	return *this;
 }
 double LineSegment2D::GetArea() const
 {

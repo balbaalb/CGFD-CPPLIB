@@ -421,9 +421,10 @@ QuadEdge::~QuadEdge()
 	delete this->vertexPrototype;
 	this->vertexPrototype = 0;
 }
-void QuadEdge::operator=(const QuadEdge& g)
+QuadEdge& QuadEdge::operator=(const QuadEdge& g)
 {
 	this->CopyBody(g);
+	return *this;
 };
 void QuadEdge::SetPrototype(Face* prototype)
 {

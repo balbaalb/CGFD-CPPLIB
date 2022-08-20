@@ -14,10 +14,11 @@ Vector::Vector(const bMatrix& A)
 {
 	this->CopyBody(A);
 }
-void Vector::operator=(const Vector& U)
+Vector& Vector::operator=(const Vector& U)
 {
 	this->DeleteBody();
 	this->CopyBody(U);
+	return *this;
 }
 double Vector::DotProduct(const Vector& U) const
 {

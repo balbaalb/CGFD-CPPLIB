@@ -11,7 +11,7 @@ public:
 	Circle();
 	Circle(Vector3D center, double radius);
 	Circle(const Circle& c);
-	void operator=(const Circle& c);
+	Circle& operator=(const Circle& c);
 	double Area() const;
 	double Perimeter() const;
 	void SetCenter(const Vector3D& Center);

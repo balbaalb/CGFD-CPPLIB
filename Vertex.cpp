@@ -40,10 +40,11 @@ Vertex::Vertex(const Vector3D& v)
 	this->z = v(2);
 	this->index = -1;
 }
-void Vertex::operator=(const Vertex& v)
+Vertex& Vertex::operator=(const Vertex& v)
 {
 	this->CopyBody(v);
 	this->type = 0;
+	return *this;
 }
 Edge* Vertex::GetEdge() const
 {
