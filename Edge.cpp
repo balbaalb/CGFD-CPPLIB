@@ -191,6 +191,20 @@ Vector3D Edge::GetVector() const
 	Vector3D v = this->Dest->GetPoint() - this->Orig->GetPoint();
 	return v;
 }
+Vector3D Edge::GetNormal_2D() const //Only works for 2D edges
+{
+	if (!this->Orig || !this->Dest)
+		throw "Edge::GetNormal(): Origin or Dist is NULL";
+	Vector3D ez(0, 0, 1);
+	Vector3D eta = this->GetVector();
+	double etaL = eta.abs();
+	if (!etaL)
+		throw "Edge::GetNormal(): Edge Length is zero.";
+	Vector3D e_eta = eta / etaL;
+	Vector3D n = e_eta && ez;
+	n(2) = 0;
+	return n;
+}
 double Edge::GetLength() const
 {
 	if (this->Orig && this->Dest)

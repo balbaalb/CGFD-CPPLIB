@@ -1009,6 +1009,14 @@ double NodeComposite::GetK(GeoGraphObject* row, GeoGraphObject* col)
 	}
 	return 0;
 }
+void NodeComposite::SetK(const SquareMatrix& Kr)
+{
+	*(this->K) = Kr;
+}
+void NodeComposite::SetK(const NodeComposite& NC)
+{
+	*(this->K) = *(NC.K);
+}
 double NodeComposite::GetC(GeoGraphObject* row)
 {
 	if (!this->isDependent[row])

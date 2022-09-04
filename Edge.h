@@ -67,6 +67,7 @@ public:
 	Edge* GetNext(Vertex* v) const;//needs testing
 	void Reverse();
 	Vector3D GetVector() const;
+	Vector3D GetNormal_2D() const;//Only works for 2D edges
 	double GetLength() const;
 	Vector3D GetMidPoint() const;
 	Vector3D GetPoint();

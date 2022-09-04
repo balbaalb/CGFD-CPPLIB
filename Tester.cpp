@@ -169,14 +169,14 @@ void Tester()
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "FVM test ...";
-		correct = tester_FVM(NumTests);//+14
+		correct = tester_FVM(NumTests);//+16
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "tester_FVM_Grid test ...";
 		correct = tester_FVM_Grid(NumTests);//+10
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
-		if (NumTests < 133)
+		if (NumTests < 135)
 		{
 			std::cout << std::endl << "SOME TESTS ARE BYPASSED!!!!";
 		}

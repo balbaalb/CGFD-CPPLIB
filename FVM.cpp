@@ -311,6 +311,61 @@ Vector3D FVM::GetGradient(NodeComposite& nodes, Face* f)
 	Vector X = ATA_inv * A.Transpose() * B;
 	return Vector3D(X(0), X(1));
 }
+Vector3D FVM::GetGradient_p(Face* f)
+{
+	QuadEdge* qe = this->triangulation->GetMesh2D();
+	Face* fb = this->triangulation->GetBoundary(); 
+	{
+		EdgeIterator ite(f);
+		Edge* e = ite.Next();
+		bool isBoundaryFace = false;
+		while (e)
+		{
+			Face* f1 = e->GetOtherFace(f);
+			if (f1 == fb)
+			{
+				isBoundaryFace = true;
+				break;
+			}
+			e = ite.Next();
+		}
+		if (!isBoundaryFace)
+		{
+			return this->GetGradient(this->PNodes, f);
+		}
+	}
+	Vector3D C = f->GetCenteriod();
+	bMatrix A(2, 2);
+	Vector B(2);
+	EdgeIterator ite(f);
+	Edge* e = ite.Next();
+	Node* n0 = this->PNodes.GetNode(f);
+	double Phi0 = n0->value;
+	int row = 0;
+	while (e)
+	{
+		Face* f1 = e->GetOtherFace(f);
+		Vector3D C1;
+		GeoGraphObject* colPtr;
+		if (f1 != fb)
+		{
+			C1 = f1->GetCenteriod();
+			colPtr = f1;
+			A(row, 0) = C1(0) - C(0);
+			A(row, 1) = C1(1) - C(1);
+			double Phi = this->PNodes.GetValue(colPtr);
+			B(row) = Phi - Phi0;
+			++row;
+		}
+		e = ite.Next();
+	}
+	bMatrix ATA = A.Transpose() * A;
+	double determinant = ATA(0, 0) * ATA(1, 1) - ATA(0, 1) * ATA(1, 0);
+	bMatrix ATA_inv = ATA / determinant;
+	std::swap(ATA_inv(1, 0), ATA_inv(0, 1));
+	Vector X = ATA_inv * A.Transpose() * B;
+	return Vector3D(X(0), X(1));
+}
 void FVM::AddConvection_cellBased(NodeComposite& nodes)
 {
 	double k = this->constantConductivity; 
@@ -318,7 +373,7 @@ void FVM::AddConvection_cellBased(NodeComposite& nodes)
 	Vector3D ez(0, 0, 1);
 	QuadEdge* qe = this->triangulation->GetMesh2D();
 	Face* fb = this->triangulation->GetBoundary();
-	TVD psi(TVD::MODE::VAN_ALBADA);
+	TVD psi(this->TVD_mode);
 	FaceIterator itf(qe);
 	Face* f = itf.Next();
 	while (f)
@@ -390,17 +445,19 @@ void FVM::AddConvection_cellBased(NodeComposite& nodes)
 		f = itf.Next();
 	}
 }
-void FVM::SolveSIMPLE_v(int i)
+void FVM::SolveSIMPLE_v()
 {
-	NodeComposite* nodes = (i == 0) ? &(this->VxNodes) : &(this->VyNodes);
-	NodeComposite* aPnodes = (i == 0) ? &(this->aPu) : &(this->aPv);
-	nodes->InitializeEquations();
+	//NodeComposite* nodes = (i == 0) ? &(this->VxNodes) : &(this->VyNodes);
+	this->VxNodes.InitializeEquations();
+	this->VyNodes.InitializeEquations();
 	QuadEdge* qe = this->triangulation->GetMesh2D();
 	Face* fb = this->triangulation->GetBoundary();
 	double mu = this->liquid.viscosity;
 	auto viscosityFunction = [mu](const Vector3D& P) {return mu; };
-	this->AddDiffusion_cellBased(*nodes, viscosityFunction);
-	this->AddConvection_cellBased(*nodes);
+	this->AddDiffusion_cellBased(this->VxNodes, viscosityFunction);
+	this->AddConvection_cellBased(this->VxNodes);
+	this->AddDiffusion_cellBased(this->VyNodes, viscosityFunction);
+	this->AddConvection_cellBased(this->VyNodes);
 	//Adding the pressure source term:
 	Vector3D ez(0, 0, 1);
 	FaceIterator itf(qe);
@@ -410,34 +467,62 @@ void FVM::SolveSIMPLE_v(int i)
 		if (f != fb)
 		{
 			Vector3D C = f->GetCenteriod();
-			double b = 0;
-			EdgeIterator ite(f);
-			Edge* e = ite.Next();
-			while (e)
-			{
-				Vector3D M = e->GetMidPoint();
-				Vector3D CM = M - C;
-				Vector3D eta = e->GetVector();
-				if (CM.CrossProduct2D(eta) < 0)
-				{
-					eta = eta * (-1);
-				}
-				double p = this->PNodes.GetNode(e)->value;
-				double etaL = eta.abs();
-				Vector3D e_eta = eta / etaL;
-				Vector3D n = e_eta && ez;
-				n(2) = 0;//avoiding numerical issues.
-				b += -n(i) * p * etaL;
-				e = ite.Next();
-			}
-			Node* aPnode = aPnodes->GetNode(f);
-			aPnode->value = nodes->GetK(f, f);
-			nodes->AddToC(f, -b);
+			Vector3D b(-this->gradPx.GetValue(f), -this->gradPy.GetValue(f));
+			b = b * this->triangulation->GetArea(f);
+			this->VxNodes.AddToC(f, -b(0));
+			this->VyNodes.AddToC(f, -b(1));
 		}
 		f = itf.Next();
 	}
-	this->ConvergenceV[i] = nodes->SolveAndUpdate(0.5);
-	//nodes->Populate();
+	this->ConvergenceV[0] = this->VxNodes.SolveAndUpdate(0.5);
+	this->ConvergenceV[1] = this->VyNodes.SolveAndUpdate(0.5);
+}
+void FVM::SolveSIMPLE_updateHelper()
+{
+	QuadEdge* qe = this->triangulation->GetMesh2D();
+	Face* fb = this->triangulation->GetBoundary();
+	FaceIterator itf(qe);
+	Face* f = itf.Next();
+	while (f)
+	{
+		if (f != fb)
+		{
+			double aPu = fabs(this->VxNodes.GetK(f, f));
+			this->Helper.SetValue(f, aPu);
+		}
+		f = itf.Next();
+	}
+	EdgeIterator ite(qe);
+	Edge* e = ite.Next();
+	while (e)
+	{
+		Vector3D n = e->GetNormal_2D();
+		Face* fR = e->GetRight();
+		Face* fL = e->GetLeft();
+		if (fR != fb && fL != fb)//This should be changed if a boundary with a known pressure but unknown velocity is considered.
+		{
+			Vector3D vR, vL;
+			vR(0) = this->VxNodes.GetValue(fR);
+			vL(0) = this->VxNodes.GetValue(fL);
+			vR(1) = this->VyNodes.GetValue(fR);
+			vL(1) = this->VyNodes.GetValue(fL);
+			double uf = 0.5 * (vR || n) + 0.5 * (vL || n);
+			Vector3D gradP_P(this->gradPx.GetValue(fL), this->gradPy.GetValue(fL));
+			Vector3D gradP_A(this->gradPx.GetValue(fR), this->gradPy.GetValue(fR));
+			Vector3D P = fL->GetPoint();
+			Vector3D A = fR->GetPoint();
+			Vector3D Xi = A - P;
+			Vector3D e_xi = Xi / Xi.abs();
+			double aP = this->Helper.GetValue(fL);
+			double aA = this->Helper.GetValue(fR);
+			double areaP = this->triangulation->GetArea(fL);
+			double areaA = this->triangulation->GetArea(fR);
+			uf -= 0.5 * areaP / aP * (gradP_P || e_xi);
+			uf -= 0.5 * areaA / aA * (gradP_A || e_xi);
+			this->Helper.SetValue(e, uf);
+		}
+		e = ite.Next();
+	}
 }
 void FVM::SolveSIMPLE_p()
 {
@@ -459,141 +544,136 @@ void FVM::SolveSIMPLE_p()
 			Vector3D C = f->GetCenteriod();
 			double aP = 0;
 			double b = 0;
-			double aPx = this->aPu.GetValue(f);
-			double aPy = this->aPv.GetValue(f);
-			double uxP = this->VxNodes.GetValue(f);
-			double uyP = this->VyNodes.GetValue(f);
-			Vector3D uP(uxP, uyP);
+			double aPu = this->Helper.GetValue(f);
 			double areaP = this->triangulation->GetArea(f);
-			Vector3D gradPress_P = this->GetGradient(this->PNodes, f);
 			EdgeIterator ite(f);
 			Edge* e = ite.Next();
 			while (e)
 			{
-				Vector3D M = e->GetMidPoint();
-				Vector3D CM = M - C;
-				Vector3D eta = e->GetVector();
-				if (CM.CrossProduct2D(eta) < 0)
-				{
-					eta = eta * (-1);
-				}
-				double etaL = eta.abs();
-				Vector3D e_eta = eta / etaL;
 				Face* f1 = e->GetOtherFace(f);
-				Vector3D C1;
-				GeoGraphObject* colPtr;
-				double areaA = 0;
-				Vector3D gradPress_A;
 				if (f1 != fb)
 				{
-					C1 = f1->GetCenteriod();
-					colPtr = f1;
-					areaA = this->triangulation->GetArea(f1);
-					gradPress_A = this->GetGradient(this->PNodes, f1);
+					double uf = this->Helper.GetValue(e);
+					Vector3D M = e->GetMidPoint();
+					Vector3D CM = M - C;
+					Vector3D eta = e->GetVector();
+					double etaL = eta.abs();
+					Vector3D n = e->GetNormal_2D();
+					if ((n || CM) < 0)
+					{
+						uf *= -1;
+					}
+					b += uf * etaL;
+					Vector3D C1 = f1->GetCenteriod();
+					double areaA = this->triangulation->GetArea(f1);
+					Vector3D ksi = C1 - C;
+					double ksiL = ksi.abs();
+					double aAu = this->Helper.GetValue(f1);
+					double aA = 0.5 * areaP / aPu / ksiL * etaL;
+					aA       += 0.5 * areaA / aAu / ksiL * etaL;
+					nodes->AddToK(f, f1, -aA);
+					aP += aA;
 				}
-				else
-				{
-					C1 = (e->GetOrig()->GetPoint() + e->GetDest()->GetPoint()) / 2.0;
-					colPtr = e;
-				}
-				Vector3D ksi = C1 - C;
-				double ksiL = ksi.abs();
-				Vector3D e_ksi = ksi / ksiL;
-				Vector3D n = e_eta && ez;
-				n(2) = 0;//avoiding numerical issues.
-				double uxA = this->VxNodes.GetValue(colPtr);
-				double uyA = this->VyNodes.GetValue(colPtr);
-				Vector3D uA(uxA, uyA);
-				double aAx = this->aPu.GetValue(colPtr);
-				double aAy = this->aPv.GetValue(colPtr);
-				double un_P = uP || n;
-				double un_A = uA || n;
-				b += -0.5 * (un_P + un_A) * etaL;
-				double x1 = 0.5 * areaP;
-				double denom = (aPx * n(0) + aPy * n(1));
-				double x2 = x1 / denom;
-				double x3 = x2 * (gradPress_P || e_ksi);
-				double x4 = x3 * etaL;
-				b += 0.5 * areaP * (n(0) / aPx + n(1) / aPy) * (gradPress_P || e_ksi) * etaL;
-				b += (colPtr == f1) ? 0.5 * areaA * (n(0) / aAx + n(1) / aAy) * (gradPress_A || e_ksi) * etaL : 0;
-				double k = 0.5 * areaP * (n(0) / aPx + n(1) / aPy) / ksiL * etaL;
-				k += (colPtr == f1) ? 0.5 * areaA * (n(0) / aAx + n(1) / aAy) / ksiL * etaL : 0;
-				nodes->AddToK(f, colPtr, k);
-				aP += k;
 				e = ite.Next();
 			}
-			nodes->AddToK(f, f, -aP);
+			nodes->AddToK(f, f, aP);
 			nodes->AddToC(f, -b);
 		}
 		f = itf.Next();
 	}
 	this->PNodes.SetValueInEquations(f0, 0);
 	this->ConvergenceP = this->PNodes.SolveAndAdd(0.5);
-	nodes->Populate();
+	this->PNodes.Populate();
 }
-void FVM::SolveSIMPLE_CorrectV()
+void FVM::SolveSIMPLE_gradP()
 {
-	//Based on Versteeg & Malalasekara equation (11.90)
-	Vector3D ez(0, 0, 1);
 	QuadEdge* qe = this->triangulation->GetMesh2D();
 	Face* fb = this->triangulation->GetBoundary();
-	EdgeIterator ite(qe);
-	Edge* e = ite.Next();
-	while (e)
-	{
-		if (!this->VxNodes.IsConstValue(e));
-			this->VxNodes.AddToValue(e, 0);
-		if (!this->VyNodes.IsConstValue(e));
-			this->VyNodes.AddToValue(e, 0);
-		e = ite.Next();
-	}
 	FaceIterator itf(qe);
 	Face* f = itf.Next();
 	while (f)
 	{
 		if (f != fb)
 		{
-			Vector3D C = f->GetCenteriod();
-			double aP = 0;
-			double b = 0;
-			double aPx = this->aPu.GetValue(f);
-			double aPy = this->aPv.GetValue(f);
-			double uxP = this->VxNodes.GetValue(f);
-			double uyP = this->VyNodes.GetValue(f);
-			Vector3D uP(uxP, uyP);
-			double areaP = this->triangulation->GetArea(f);
-			Vector3D gradPress_P = this->GetGradient(this->PNodes, f);
-			EdgeIterator ite(f);
-			Edge* e = ite.Next();
-			while (e)
-			{
-				Vector3D M = e->GetMidPoint();
-				Vector3D CM = M - C;
-				Vector3D eta = e->GetVector();
-				if (CM.CrossProduct2D(eta) < 0)
-				{
-					eta = eta * (-1);
-				}
-				double etaL = eta.abs();
-				Vector3D e_eta = eta / etaL;
-				Vector3D C1;
-				Vector3D ksi = C1 - C;
-				double ksiL = ksi.abs();
-				Vector3D e_ksi = ksi / ksiL;
-				Vector3D n = e_eta && ez;
-				n(2) = 0;//avoiding numerical issues.
-				double un_P = uP || n;
-				double uf = 0.5 * un_P;
-				uf += 0.5 * areaP * (n(0) / aPx + n(1) / aPy) / ksiL * this->PNodes.GetValue(f);
-				uf -= 0.5 * areaP * (n(0) / aPx + n(1) / aPy) * (gradPress_P || e_ksi);
-				if (!this->VxNodes.IsConstValue(e));
-					this->VxNodes.AddToValue(e, uf * n(0));
-				if (!this->VyNodes.IsConstValue(e));
-					this->VyNodes.AddToValue(e, uf * n(1));
-				e = ite.Next();
-			}
+			Vector3D gradP = this->GetGradient_p(f);
+			this->gradPx.SetValue(f, gradP(0));
+			this->gradPy.SetValue(f, gradP(1));
 		}
 		f = itf.Next();
+	}
+}
+void FVM::SolveSIMPLE_CorrectV()
+{
+	QuadEdge* qe = this->triangulation->GetMesh2D();
+	Face* fb = this->triangulation->GetBoundary();
+	EdgeIterator ite(qe);
+	Edge* e = ite.Next();
+	while (e)
+	{
+		Vector3D n = e->GetNormal_2D();
+		Face* fR = e->GetRight();
+		Face* fL = e->GetLeft();
+		if (fR != fb && fL != fb)//This should be changed if a boundary with a known pressure but unknown velocity is considered.
+		{
+			Vector3D vR, vL;
+			vR(0) = this->VxNodes.GetValue(fR);
+			vL(0) = this->VxNodes.GetValue(fL);
+			vR(1) = this->VyNodes.GetValue(fR);
+			vL(1) = this->VyNodes.GetValue(fL);
+			double uf = 0.5 * (vR || n) + 0.5 * (vL || n);
+			Vector3D gradP_P(this->gradPx.GetValue(fL), this->gradPy.GetValue(fL));
+			Vector3D gradP_A(this->gradPx.GetValue(fR), this->gradPy.GetValue(fR));
+			Vector3D P = fL->GetPoint();
+			Vector3D A = fR->GetPoint();
+			Vector3D Xi = A - P;
+			Vector3D e_xi = Xi / Xi.abs();
+			double aP = this->Helper.GetValue(fL);
+			double aA = this->Helper.GetValue(fR);
+			double areaP = this->triangulation->GetArea(fL);
+			double areaA = this->triangulation->GetArea(fR);
+			uf -= 0.5 * areaP / aP * (gradP_P || e_xi);
+			uf -= 0.5 * areaA / aA * (gradP_A || e_xi);
+			double pP = this->PNodes.GetValue(fL);
+			double pA = this->PNodes.GetValue(fR);
+			uf += 0.5 * (areaP / aP + areaA / aA) * (pP - pA) / Xi.abs();
+			this->VxNodes.SetValue(e, uf * n(0));
+			this->VyNodes.SetValue(e, uf * n(1));
+			this->Helper.SetValue(e, uf);
+		}
+		e = ite.Next();
+	}
+}
+void FVM::MakePressuresPositive()
+{
+	QuadEdge* qe = this->triangulation->GetMesh2D();
+	Face* fb = this->triangulation->GetBoundary();
+	double pMin = 0;
+	{
+		FaceIterator itf(qe);
+		Face* f = itf.Next();
+		while (f)
+		{
+			if (f != fb)
+			{
+				double p = this->PNodes.GetValue(f);
+				if (p < pMin)
+					pMin = p;
+			}
+			f = itf.Next();
+		}
+	}
+	{
+		FaceIterator itf(qe);
+		Face* f = itf.Next();
+		while (f)
+		{
+			if (f != fb)
+			{
+				double p = this->PNodes.GetValue(f);
+				this->PNodes.SetValue(f, p - pMin);
+			}
+			f = itf.Next();
+		}
 	}
 }
 void FVM::populateVelocities(function<double(const Vector3D& P)> V[2])
@@ -667,6 +747,8 @@ void FVM::Debugger()
 			double vx = this->VxNodes.GetValue(f);
 			double vy = this->VyNodes.GetValue(f);
 			double p = this->PNodes.GetValue(f);
+			double dpdx = this->gradPx.GetValue(f);
+			double dpdy = this->gradPy.GetValue(f);
 			++counter;
 		}
 		f = itf.Next();
@@ -684,6 +766,7 @@ void FVM::Debugger()
 		double vx = this->VxNodes.GetValue(e);
 		double vy = this->VyNodes.GetValue(e);
 		double p = this->PNodes.GetValue(e);
+		double uf = this->Helper.GetValue(e);
 		e = ite.Next();
 		++counter;
 	}
@@ -706,13 +789,11 @@ void FVM::Debugger()
 }
 FVM::FVM(const Triangulation& T, CELL_GEOMETRY cell_geo_) : cell_geo(cell_geo_)
 {
-	this->triangulation = new Triangulation(T);
+	this->triangulation = make_shared<Triangulation>(T);
 }
 FVM::~FVM()
 {
-	if (this->triangulation)
-		delete this->triangulation;
-	this->triangulation = 0;
+
 }
 void FVM::AddDiffusion(double conductivity)
 {
@@ -817,6 +898,10 @@ void FVM::SetVyBoundaryConditions(function<double(const Vector3D& P)> BC)
 		}
 	}
 }
+void FVM::SetTVD(TVD::MODE mode)
+{
+	this->TVD_mode = mode;
+}
 void FVM::SetFlowProblem(const LiquidProperties& liq)
 {
 	this->mode = MODE::SIMPLE;
@@ -826,8 +911,9 @@ void FVM::SetFlowProblem(const LiquidProperties& liq)
 	this->VxNodes.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY);
 	this->VyNodes.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY);
 	this->PNodes.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS);
-	this->aPu.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY);
-	this->aPv.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY);
+	this->Helper.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY);
+	this->gradPx.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS);
+	this->gradPy.Initialize(qe, fb, NODE_COMPOSITE_TYPE::CELLS);
 }
 void FVM::SetFlowProblem(double Re)
 {
@@ -838,7 +924,31 @@ void FVM::SetFlowProblem(double Re)
 }
 void FVM::Solve(vector<Node*>& results)
 {
-	if (this->mode == MODE::CONSERVATION)
+	if (this->mode == MODE::SIMPLE)
+	{
+		this->constantConductivity = this->liquid.thermalConductionCoeff;
+		this->constantDensity = this->liquid.density;
+		int iter = -1;
+		int max_iter = 50;
+		double Min_convergence = 0.001;
+		while (iter < max_iter)
+		{
+			++iter;
+			this->SolveSIMPLE_v();
+			this->SolveSIMPLE_updateHelper();
+			this->SolveSIMPLE_p();
+			this->SolveSIMPLE_gradP();
+			this->SolveSIMPLE_CorrectV();
+			if (this->ConvergenceV[0] < 0.01 && this->ConvergenceV[1] < 0.01 && this->ConvergenceP < 0.01)
+				break;
+		}
+		this->VxNodes.Populate();
+		this->VyNodes.Populate();
+		this->MakePressuresPositive();
+		this->PNodes.Populate();
+		this->PNodes.GetResults_Vertices(results);
+	}
+	else if (this->mode == MODE::CONSERVATION)
 	{
 		if (this->cell_geo == CELL_GEOMETRY::VERTEX_BASED)
 		{
@@ -870,6 +980,22 @@ void FVM::Solve(vector<Node*>& results)
 		}
 		this->TNodes.GetResults_Vertices(results);
 	}
+}
+void FVM::Solve(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& P)
+{
+	this->Solve(P);
+	this->VxNodes.GetResults_Vertices(Vx);
+	this->VyNodes.GetResults_Vertices(Vy);
+}
+QuadEdge* FVM::GetMesh2D()
+{
+	return this->triangulation->GetMesh2D();
+}
+Face* FVM::GetBoundary()
+{
+	if (!this->triangulation)
+		return nullptr;
+	return this->triangulation->GetBoundary();
 }
 double FVM::Get_TValue(const Vector& P)
 {
@@ -910,6 +1036,8 @@ bool tester_FVM(int& NumTests)
 	if (!tester_FVM_8(NumTests))
 		return false;
 	if (!tester_FVM_9(NumTests))
+		return false;
+	if (!tester_FVM_10(NumTests))
 		return false;
 	++NumTests;
 	return true;
@@ -1454,6 +1582,90 @@ bool tester_FVM_9(int& NumTests)
 			max_error_percent = error_percent;
 	}
 	if (max_error_percent > 0.1)
+		return false;
+	++NumTests;
+	return true;
+}
+bool tester_FVM_10(int& NumTests)
+{//Testing Lid Cavity results qualitatively
+	//-----Geometry---------------------
+	double Lx = 6.0;
+	double Ly = 6.0;
+	vector<Vector3D> input(5);
+	input[1](0) = Lx;
+	input[2](0) = Lx;  input[2](1) = Ly;
+	input[3](1) = Ly;
+	input[4](0) = Lx / 2.0;  input[4](1) = Ly / 2.0;
+	Triangulation T = DelaunayLifting::Triangulate(input);
+	T.Draw("D:/Bashar/MyStuff/A10/C616/tester_FVM_10.bmp");//Temporary !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	FVM fvm(T);
+	fvm.SetTVD(TVD::MODE::UPSTREAM_DIFFERENCING);
+	//-----Liquid properties---------------------
+	LiquidProperties liq;
+	liq.density = 1.0;
+	liq.viscosity = 1.0;
+	fvm.SetFlowProblem(liq);
+	//-----Boundary conditions---------------------
+	double VLid = 10;
+	auto VxBC = [Ly, VLid](const Vector3D& P)->double {return P(1) < Ly - 0.00001 ? 0 : VLid; };
+	fvm.SetVxBoundaryConditions(VxBC);
+	auto VyBC = [](const Vector3D& P)->double {return 0; };
+	fvm.SetVyBoundaryConditions(VyBC);
+	//-----Solve---------------------
+	vector<Node*> PNodes;
+	fvm.Solve(PNodes);
+	//------Check-------------------
+	QuadEdge* qe = fvm.GetMesh2D();
+	FaceIterator itf(qe);
+	Face* f = itf.Next();
+	int counter = 0;
+	double vx[4]{ 0,0,0,0 };
+	double vy[4]{ 0,0,0,0 };
+	double pres[4]{ 0,0,0,0 };
+	while (f)
+	{
+		if (f != fvm.GetBoundary())
+		{
+			Vector3D P = f->GetPoint();
+			double Px = P(0);
+			double Py = P(1);
+			bool isValid = false;
+			vx[counter] = fvm.GetVxValue(f, isValid);
+			if (!isValid)
+				return false;
+			isValid = false;
+			vy[counter] = fvm.GetVyValue(f, isValid);
+			if (!isValid)
+				return false;
+			isValid = false;
+			pres[counter] = fvm.GetPValue(f, isValid);
+			if (!isValid)
+				return false;
+			++counter;
+		}
+		f = itf.Next();
+	}
+	if (fabs(vx[0] + 0.79109) > 0.01)
+		return false;
+	if (fabs(vy[0] + 0.12969) > 0.01)
+		return false;
+	if (fabs(vx[1] + 0.09023) > 0.01)
+		return false;
+	if (fabs(vy[1] - 0.007815) > 0.01)
+		return false;
+	if (fabs(pres[1] - pres[0] - 2.660528) > 0.01)
+		return false;
+	if (fabs(vx[2] + 0.66303) > 0.01)
+		return false;
+	if (fabs(vy[2] + 0.07593) > 0.01)
+		return false;
+	if (fabs(pres[2] - pres[0] + 1.82535) > 0.01)
+		return false;
+	if (fabs(vx[3]  - 4.815605) > 0.01)
+		return false;
+	if (fabs(vy[3] - 0.155603) > 0.01)
+		return false;
+	if (fabs(pres[3] - pres[0] - 0.026524) > 0.01)
 		return false;
 	++NumTests;
 	return true;

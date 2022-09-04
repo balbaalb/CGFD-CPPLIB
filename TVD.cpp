@@ -8,6 +8,7 @@ double TVD::operator()(double r) const
 	switch (mode)
 	{
 	case TVD::NO_TVD:
+	case TVD::UPSTREAM_DIFFERENCING:
 		return 0;
 	case TVD::QUICK:
 		return fmax(0, fmin(2.0, fmin(2.0 * r, (3.0 + r) / 4.0)));
@@ -15,6 +16,8 @@ double TVD::operator()(double r) const
 		return (r + fabs(r)) / (1.0 + r);
 	case TVD::VAN_ALBADA:
 		return (r + r * r) / (1.0 + r * r);
+	case TVD::CENTRAL_DIFFERENCING:
+		return 1;
 	default:
 		return 0;
 	}

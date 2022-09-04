@@ -84,6 +84,8 @@ public:
 	void GetK(SquareMatrix* Kr);
 	void GetC(Vector* Cr);
 	double GetK(GeoGraphObject* row, GeoGraphObject* col);
+	void SetK(const SquareMatrix& Kr);
+	void SetK(const NodeComposite& NC);
 	double GetC(GeoGraphObject* row);
 	void GetX(Vector* Xr);
 	void PrintEquations(ofstream& f, string label);
