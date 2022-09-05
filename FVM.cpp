@@ -315,56 +315,69 @@ Vector3D FVM::GetGradient_p(Face* f)
 {
 	QuadEdge* qe = this->triangulation->GetMesh2D();
 	Face* fb = this->triangulation->GetBoundary(); 
+	vector<Face*> f1_vec;
 	{
 		EdgeIterator ite(f);
 		Edge* e = ite.Next();
-		bool isBoundaryFace = false;
 		while (e)
 		{
 			Face* f1 = e->GetOtherFace(f);
-			if (f1 == fb)
+			if (f1 != fb)
 			{
-				isBoundaryFace = true;
-				break;
+				f1_vec.push_back(f1);
 			}
 			e = ite.Next();
 		}
-		if (!isBoundaryFace)
-		{
-			return this->GetGradient(this->PNodes, f);
-		}
 	}
-	Vector3D C = f->GetCenteriod();
-	bMatrix A(2, 2);
-	Vector B(2);
-	EdgeIterator ite(f);
-	Edge* e = ite.Next();
-	Node* n0 = this->PNodes.GetNode(f);
-	double Phi0 = n0->value;
-	int row = 0;
-	while (e)
+	if (f1_vec.size() == 3)
 	{
-		Face* f1 = e->GetOtherFace(f);
-		Vector3D C1;
-		GeoGraphObject* colPtr;
-		if (f1 != fb)
-		{
-			C1 = f1->GetCenteriod();
-			colPtr = f1;
-			A(row, 0) = C1(0) - C(0);
-			A(row, 1) = C1(1) - C(1);
-			double Phi = this->PNodes.GetValue(colPtr);
-			B(row) = Phi - Phi0;
-			++row;
-		}
-		e = ite.Next();
+		return this->GetGradient(this->PNodes, f);
 	}
-	bMatrix ATA = A.Transpose() * A;
-	double determinant = ATA(0, 0) * ATA(1, 1) - ATA(0, 1) * ATA(1, 0);
-	bMatrix ATA_inv = ATA / determinant;
-	std::swap(ATA_inv(1, 0), ATA_inv(0, 1));
-	Vector X = ATA_inv * A.Transpose() * B;
-	return Vector3D(X(0), X(1));
+	if (f1_vec.size() == 2)
+	{
+		Vector3D C = f->GetCenteriod();
+		bMatrix A(2, 2);
+		Vector B(2);
+		double Phi0 = this->PNodes.GetValue(f);
+		int row = 0;
+		EdgeIterator ite(f);
+		Edge* e = ite.Next();
+		while (e)
+		{
+			Face* f1 = e->GetOtherFace(f);
+			if (f1 != fb)
+			{
+				Vector3D C1 = f1->GetCenteriod();
+				A(row, 0) = C1(0) - C(0);
+				A(row, 1) = C1(1) - C(1);
+				double Phi = this->PNodes.GetValue(f1);
+				B(row) = Phi - Phi0;
+				++row;
+			}
+			e = ite.Next();
+		}
+		bMatrix ATA = A.Transpose() * A;
+		double determinant = ATA(0, 0) * ATA(1, 1) - ATA(0, 1) * ATA(1, 0);
+		bMatrix ATA_inv = ATA / determinant;
+		std::swap(ATA_inv(1, 0), ATA_inv(0, 1));
+		Vector X = ATA_inv * A.Transpose() * B;
+		return Vector3D(X(0), X(1));
+	}
+	if (f1_vec.size() == 1)
+	{
+		Face* f1 = f1_vec[0];
+		Vector3D C0 = f->GetCenteriod();
+		Vector3D C1 = f1->GetCenteriod();
+		Vector3D Ksi = C1 - C0;
+		double ds = Ksi.abs();
+		Vector e_Ksi = Ksi / ds;
+		double Phi0 = this->PNodes.GetValue(f);
+		double Phi1 = this->PNodes.GetValue(f1);
+		double dPhi = Phi1 - Phi0;
+		double gradP = dPhi / ds;
+		return e_Ksi * gradP;
+	}
+	return Vector3D();
 }
 void FVM::AddConvection_cellBased(NodeComposite& nodes)
 {
@@ -474,8 +487,8 @@ void FVM::SolveSIMPLE_v()
 		}
 		f = itf.Next();
 	}
-	this->ConvergenceV[0] = this->VxNodes.SolveAndUpdate(0.5);
-	this->ConvergenceV[1] = this->VyNodes.SolveAndUpdate(0.5);
+	this->ConvergenceV[0] = this->VxNodes.SolveAndUpdate(this->alpha_v);
+	this->ConvergenceV[1] = this->VyNodes.SolveAndUpdate(this->alpha_v);
 }
 void FVM::SolveSIMPLE_updateHelper()
 {
@@ -582,7 +595,7 @@ void FVM::SolveSIMPLE_p()
 		f = itf.Next();
 	}
 	this->PNodes.SetValueInEquations(f0, 0);
-	this->ConvergenceP = this->PNodes.SolveAndAdd(0.5);
+	this->ConvergenceP = this->PNodes.SolveAndAdd(this->alpha_p);
 	this->PNodes.Populate();
 }
 void FVM::SolveSIMPLE_gradP()
@@ -1017,6 +1030,14 @@ double FVM::GetPValue(GeoGraphObject* objPtr, bool& isValid)
 {
 	return this->PNodes.GetValue(objPtr, isValid);
 }
+void FVM::SetAlphaP(double value)
+{
+	this->alpha_p = value;
+}
+void FVM::SetalphaV(double value)
+{
+	this->alpha_v = value;
+}
 bool tester_FVM(int& NumTests)
 {
 	if (!tester_FVM_1(NumTests))
@@ -1038,6 +1059,8 @@ bool tester_FVM(int& NumTests)
 	if (!tester_FVM_9(NumTests))
 		return false;
 	if (!tester_FVM_10(NumTests))
+		return false;
+	if (!tester_FVM_11(NumTests))
 		return false;
 	++NumTests;
 	return true;
@@ -1667,6 +1690,82 @@ bool tester_FVM_10(int& NumTests)
 		return false;
 	if (fabs(pres[3] - pres[0] - 0.026524) > 0.01)
 		return false;
+	++NumTests;
+	return true;
+}
+bool tester_FVM_11(int& NumTests)
+{
+	double Lx = 1.0;
+	double Ly = 1.0;
+	double density = 1;
+	double viscosity = 1.0;
+	double VLid = 1;
+	int Nx = 6;
+	int Ny = 6;
+	Triangulation T = Triangulation::OffDiagonalGrid(Nx, Ny, Lx, Ly);
+	LiquidProperties liq;
+	liq.density = density;
+	liq.viscosity = viscosity;
+	FVM fvm(T);
+	fvm.SetFlowProblem(liq);
+	auto VxBC = [Ly, VLid](const Vector3D& P)->double {return P(1) < Ly ? 0 : VLid; };
+	fvm.SetVxBoundaryConditions(VxBC);
+	auto VyBC = [](const Vector3D& P)->double {return 0; };
+	fvm.SetVyBoundaryConditions(VyBC);
+	fvm.SetAlphaP(0.1);
+	fvm.SetalphaV(0.1);
+	vector<Node*> Vx, Vy, P;
+	fvm.Solve(Vx, Vy, P);
+	string fileName = "..\\Data\\FVM_Grid.output.txt";
+	ofstream fout;
+	fout.open(fileName.c_str(), fstream::app);
+	fout << endl << "Vx at Vertices:";
+	for (int i = 0; i < Vx.size(); ++i)
+	{
+		fout << endl << "Vx[" << i << "] = " << Vx[i]->value;
+	}
+	fout << endl << "Vy at Vertices:";
+	for (int i = 0; i < Vy.size(); ++i)
+	{
+		fout << endl << "Vy[" << i << "] = " << Vy[i]->value;
+	}
+	fout << endl << "P at Vertices:";
+	for (int i = 0; i < P.size(); ++i)
+	{
+		fout << endl << "P[" << i << "] = " << P[i]->value;
+	}
+	fout.close();
+	int iPmin = 0, iPmax = 0, iUmin = 0, iUmax = 0, iVmin = 0, iVmax = 0;
+	double Pmin = P[iPmin]->value, Pmax = P[iPmax]->value;
+	double Umin = Vx[iUmin]->value, Umax = Vx[iUmax]->value;
+	double Vmin = Vy[iVmin]->value, Vmax = Vy[iVmax]->value;
+	for (int i = 0; i < P.size(); ++i) {
+		double p = P[i]->value;
+		double u = Vx[i]->value;
+		double v = Vy[i]->value;
+		if (p < Pmin) { Pmin = p; iPmin = i; }
+		if (p > Pmax) { Pmax = p; iPmax = i; }
+		if (u < Umin) { Umin = u; iUmin = i; }
+		if (u > Umax) { Umax = u; iUmax = i; }
+		if (v < Vmin) { Vmin = v; iVmin = i; }
+		if (v > Vmax) { Vmax = v; iVmax = i; }
+	}
+	double dP_max = Pmax - Pmin;
+	double dP_max_ANSYS = 22.73;//Value from ANSYS Fluent , SIMPLE, linear, 6x6 mesh
+	double dP_max_error = fabs(dP_max - dP_max_ANSYS) / dP_max_ANSYS * 100;
+	if (Nx >= 6 && Ny >= 6 && dP_max_error > 1)
+		return false;
+	double Umin_ANSYS = -0.1455;
+	double Umin_error = fabs((Umin - Umin_ANSYS) / Umin_ANSYS) * 100.0;
+	double Vmin_ANSYS = -0.2015;
+	double Vmin_error = fabs((Vmin - Vmin_ANSYS) / Vmin_ANSYS) * 100.0;
+	double Vmax_ANSYS = 0.2007;
+	double Vmax_error = fabs((Vmax - Vmax_ANSYS) / Vmax_ANSYS) * 100.0;
+	if (Nx >= 6 && Ny >= 6)
+	{
+		if (Umin_error > 11 || Vmin_error > 8 || Vmax_error > 3)
+			return false;
+	}
 	++NumTests;
 	return true;
 }

@@ -20,6 +20,7 @@ class FVM
 	double constantDensity{0};
 	double ConvergenceV[2] {0, 0};
 	double ConvergenceP{0};
+	double alpha_p{ 0.5 }, alpha_v{ 0.5 };
 	function<double(const Vector3D& P)> conductivityFunction {0};
 	function<double(const Vector3D& P)> vFunction[2] {0, 0};
 	NodeComposite TNodes;
@@ -73,7 +74,8 @@ public:
 	double GetVxValue(GeoGraphObject* objPtr, bool& isValid);
 	double GetVyValue(GeoGraphObject* objPtr, bool& isValid);
 	double GetPValue(GeoGraphObject* objPtr, bool& isValid);
-
+	void SetAlphaP(double value);
+	void SetalphaV(double value);
 };
 bool tester_FVM(int& NumTests); //tester_FVM_6 has errors !!!!!!!!!!!!!!!!!!!!!!!!
 bool tester_FVM_1(int& NumTests);//conduction Rectangular 2 x 2
@@ -91,4 +93,5 @@ bool tester_FVM_7(int& NumTests);// tester_FVM_1 using the cell_based FVM.
 bool tester_FVM_8(int& NumTests);// tester_FVM_2 using the cell_based FVM.
 bool tester_FVM_9(int& NumTests);// tester_FVM_3 using the cell_based FVM and TVD.
 bool tester_FVM_10(int& NumTests);// SIMPLE, Lid driven cavity using co-located cell-based FVM: Qualitative checking
+bool tester_FVM_11(int& NumTests);
 #endif
