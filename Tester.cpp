@@ -57,7 +57,7 @@ void Tester()
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "SquareMatrix test ...";
-		correct = tester_SquareMatrix(NumTests);//+5
+		correct = tester_SquareMatrix(NumTests);//+6
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "CoordTransfer test ...";
@@ -176,7 +176,7 @@ void Tester()
 		correct = tester_FVM_Grid(NumTests);//+10
 		std::cout << (correct ? "okay!" : "ERROR!");
 		//---------------------------------------------------------------------------------
-		if (NumTests < 136)
+		if (NumTests < 137)
 		{
 			std::cout << std::endl << "SOME TESTS ARE BYPASSED!!!!";
 		}

@@ -18,6 +18,10 @@ int SquareMatrix::GetDim() const
 {
 	return this->GetDim1();
 }
+void SquareMatrix::SetGaussSeidelTolerance(double value)
+{
+	this->GaussSeidelTolerance = value;
+}
 double SquareMatrix::MakeUpperTriangular(Vector* b)
 {
 	bool doPivotting = true;
@@ -85,7 +89,7 @@ double SquareMatrix::MakeUpperTriangular(Vector* b)
 	}
 	return detCorrection;
 }
-Vector SquareMatrix::Solve(const Vector& B) const
+Vector SquareMatrix::Solve_GaussEliniation(const Vector& B) const
 {
 	SquareMatrix K = (*this);
 	Vector F = B;
@@ -98,6 +102,7 @@ Vector SquareMatrix::Solve(const Vector& B) const
 			if (fabs(K(i, j)) > 1.0e-10)
 			{
 				acceptable = true;
+				break;
 			}
 		}
 		if (!acceptable)
@@ -106,8 +111,6 @@ Vector SquareMatrix::Solve(const Vector& B) const
 			F(i) = 0;
 		}
 	}
-	if (B.GetDim1() != this->GetDim())
-		throw "SquareMatrix::Solve()";
 	K.MakeUpperTriangular(&F);
 	for (int i = K.GetDim() - 1; i >= 0; --i)
 	{
@@ -119,6 +122,59 @@ Vector SquareMatrix::Solve(const Vector& B) const
 		X(i) = RHS / K(i, i);
 	}
 	return X;
+}
+Vector SquareMatrix::Solve_GaussSeidel(const Vector& B) const
+{
+	double alpha = 0.5;
+	Vector convergence(this->GetDim());
+	int counter = 0;
+	Vector X(this->GetDim());
+	bool can_use_GaussSeidel = true;
+	do
+	{
+		Vector X_old = X;
+		for (int i = 0; i < this->GetDim(); ++i)
+		{
+			double sum = B(i);
+			for (int j = 0; j < this->GetDim(); ++j)
+			{
+				sum -= (i != j) ? (*this)(i, j) * X(j) : 0;
+			}
+			X(i) = sum / (*this)(i, i);
+		}
+		X = X * alpha + X_old * (1.0 - alpha);
+		convergence = X - X_old;
+		++counter;
+	} while (counter < 1000 && (counter < 1 || convergence.abs() > this->GaussSeidelTolerance));
+	return X;
+}
+bool SquareMatrix::CanUse_GaussSeidel()
+{
+	for (int i = 0; i < this->GetDim(); ++i)
+	{
+		bool acceptable = false;
+		double sum = 0;
+		for (int j = 0; j < this->GetDim(); ++j)
+		{
+			sum += (i != j) ? fabs((*this)(i, j)) : 0;
+			if (fabs((*this)(i, j)) > 1.0e-10)
+			{
+				acceptable = true;
+			}
+		}
+		if (!acceptable || fabs((*this)(i, i)) <= sum)
+			return false;
+	}
+	return true;
+}
+Vector SquareMatrix::Solve(const Vector& B, METHOD method) const
+{
+	if (B.GetDim1() != this->GetDim())
+		throw "SquareMatrix::Solve()";
+	if (method == GAUSS_ELIMINATION)
+		return this->Solve_GaussEliniation(B);
+	else
+		return this->Solve_GaussSeidel(B);
 }
 bool tester_SquareMatrix(int& NumTests)
 {
@@ -138,6 +194,8 @@ bool tester_SquareMatrix(int& NumTests)
 	if (!tester_SquareMatrix_3(NumTests))
 		return false;
 	if (!tester_SquareMatrix_4(NumTests))
+		return false;
+	if (!tester_SquareMatrix_5(NumTests))
 		return false;
 	++NumTests;
 	return true;
@@ -234,6 +292,28 @@ bool tester_SquareMatrix_4(int& NumTests)
 		if (fabs(xx(i) - x(i)) > 1.0e-10)
 			return false;
 	}
+	++NumTests;
+	return true;
+}
+bool tester_SquareMatrix_5(int& NumTests)
+{
+
+	SquareMatrix A(4);
+	Vector B(4), X(4);
+	A(0, 0) = 10;	A(0, 1) = 2;	A(0, 2) = -1;	A(0, 3) = 5;	X(0) = 5;	B(0) = 64.5;
+	A(1, 0) = 5;	A(1, 1) = 12;	A(1, 2) = 2;	A(1, 3) = 4;	X(1) = -11; B(1) = -61;
+	A(2, 0) = -3;	A(2, 1) = 5;	A(2, 2) = 18; 	A(2, 3) = 8;	X(2) = 6;	B(2) = 106;
+	A(3, 0) = -2;	A(3, 1) = 4;	A(3, 2) = 3;	A(3, 3) = 20;	X(3) = 8.5;	B(3) = 134;
+	if (!A.CanUse_GaussSeidel())
+		return false;
+	Vector xx = A.Solve(B, SquareMatrix::METHOD::GAUSS_SEIDEL);
+	for (int i = 0; i < 4; ++i) {
+		if (fabs(xx(i) - X(i)) > 1.0e-5)
+			return false;
+	}
+	A(2, 2) = 15.99;
+	if (A.CanUse_GaussSeidel())
+		return false;
 	++NumTests;
 	return true;
 }
