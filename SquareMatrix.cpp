@@ -148,22 +148,37 @@ Vector SquareMatrix::Solve_GaussSeidel(const Vector& B) const
 	} while (counter < 1000 && (counter < 1 || convergence.abs() > this->GaussSeidelTolerance));
 	return X;
 }
-bool SquareMatrix::CanUse_GaussSeidel()
+bool SquareMatrix::CanUse_GaussSeidel(bool fixRoundOffError)
 {
 	for (int i = 0; i < this->GetDim(); ++i)
 	{
 		bool acceptable = false;
 		double sum = 0;
+		double* a = new double[this->GetDim()];
 		for (int j = 0; j < this->GetDim(); ++j)
 		{
+			a[j] = (*this)(i, j);
 			sum += (i != j) ? fabs((*this)(i, j)) : 0;
 			if (fabs((*this)(i, j)) > 1.0e-10)
 			{
 				acceptable = true;
 			}
 		}
-		if (!acceptable || fabs((*this)(i, i)) <= sum)
+		if (!acceptable)
 			return false;
+		if (fabs((*this)(i, i)) < sum)
+		{
+			double aP = fabs((*this)(i, i));
+			double delta = sum - aP;
+			if (delta < 0.0001 * aP && fixRoundOffError)
+			{
+				aP = sum * (1.0001);
+			}
+			else 
+			{
+				return false;
+			}
+		}
 	}
 	return true;
 }

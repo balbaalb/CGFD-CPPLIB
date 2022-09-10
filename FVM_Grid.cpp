@@ -17,10 +17,6 @@
 #include "ConductionConvectionProblem.h"
 double FVM_Grid::alpha_p = 0.3;
 double FVM_Grid::alpha_v = 0.3;
-double FVM_Grid::ConvergenceTolVx = 1.0e-6;
-double FVM_Grid::ConvergenceTolVy = 1.0e-6;
-double FVM_Grid::ConvergenceTolP = 1.0e-6;
-double FVM_Grid::ConvergenceTolT = 1.0e-6;
 bool FVM_Grid::change_alpha = false;
 void BoundaryValues::copyBody(const BoundaryValues& rhs)
 {
@@ -290,6 +286,7 @@ void FVM_Grid::SolveSIMPLE_vx()
 		}
 		e = ite.Next();
 	}
+	this->VxNodes.StabilizeK();
 	this->ConvergenceVx = this->VxNodes.SolveAndUpdate(FVM_Grid::alpha_v);
 }
 void FVM_Grid::SolveSIMPLE_vy()
@@ -372,6 +369,7 @@ void FVM_Grid::SolveSIMPLE_vy()
 		}
 		e = ite.Next();
 	}
+	this->VyNodes.StabilizeK();
 	this->ConvergenceVy = this->VyNodes.SolveAndUpdate(FVM_Grid::alpha_v);
 }
 void FVM_Grid::SolveSIMPLE_p()
@@ -421,6 +419,7 @@ void FVM_Grid::SolveSIMPLE_p()
 		f = itf.Next();
 	}
 	this->PNodes.SetValueInEquations(f0, 0);
+	this->PNodes.StabilizeK();
 	this->ConvergenceP = this->PNodes.SolveAndAdd(FVM_Grid::alpha_p);
 }
 void FVM_Grid::SolveSIMPLE_CorrectV()
@@ -688,6 +687,25 @@ void FVM_Grid::SetVelocityGradientBoundaryConditions(const BoundaryValues& Vx, c
 		v = itv.Next();
 	}
 }
+void FVM_Grid::SetMinconvergenceV(double value)
+{
+	this->MinConvergenceV = value;
+}
+void FVM_Grid::SetMinconvergenceP(double value)
+{
+	this->MinConvergenceP = value;
+}
+void FVM_Grid::SetMinconvergenceT(double value)
+{
+	this->MinConvergenceT = value;
+}
+void FVM_Grid::SetSolveMethod(NodeComposite::METHOD value, double tolerance)
+{
+	this->TNodes.SetSolveMethod(value, tolerance);
+	this->VxNodes.SetSolveMethod(value, tolerance);
+	this->VyNodes.SetSolveMethod(value, tolerance);
+	this->PNodes.SetSolveMethod(value, tolerance);
+}
 void FVM_Grid::SolveThermalProblem(vector<Node*>& cell_results)
 {
 	int iter = -1;
@@ -699,11 +717,12 @@ void FVM_Grid::SolveThermalProblem(vector<Node*>& cell_results)
 			this->AddDiffusionEquations();
 		else
 			this->AddDiffusionConvectionEquations();
+		this->TNodes.StabilizeK();
 		this->ConvergenceT = this->TNodes.SolveAndUpdate();
 		this->TNodes.Populate();
 		if (this->ConvergenceT > 1e10)
 			throw "Error: The TVD iterations are not stable.";
-		if (this->ConvergenceT < FVM_Grid::ConvergenceTolT)
+		if (this->ConvergenceT < this->MinConvergenceT)
 			break;
 	}
 	this->TNodes.GetResults_Cells(cell_results);
@@ -744,9 +763,9 @@ void FVM_Grid::SolveSIMPLE(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& 
 			this->TNodes.Populate();
 		}
 		this->printEquations(fileName, iter);
-		if (this->ConvergenceVx < FVM_Grid::ConvergenceTolVx &&
-			this->ConvergenceVy < FVM_Grid::ConvergenceTolVy &&
-			this->ConvergenceP < FVM_Grid::ConvergenceTolP)
+		if (this->ConvergenceVx < this->MinConvergenceV &&
+			this->ConvergenceVy < this->MinConvergenceV &&
+			this->ConvergenceP < this->MinConvergenceP)
 			break;
 		if (this->ConvergenceVx > 1e10 || this->ConvergenceVy > 1e10 || this->ConvergenceP > 1e10)
 			throw "Error: The SIMPLE iterations are not stable.";
@@ -954,12 +973,12 @@ bool tester_FVM_Grid_7(int& NumTests)
 	G.GetMesh2D()->print("..\\Data\\tester_FVM_Grid_7.Grid.txt");
 	FVM_Grid::alpha_p = 0.3;
 	FVM_Grid::alpha_v = 0.3;
-	FVM_Grid::ConvergenceTolVx = 1.0e-6;
-	FVM_Grid::ConvergenceTolVy = 1.0e-6;
-	FVM_Grid::ConvergenceTolP = 1.0e-6;
 	FVM_Grid fvm(G);
 	fvm.SetFlowProblem(liq);
 	fvm.SetVelocityBoundaryConditions(VBx, VBy);
+	fvm.SetMinconvergenceP(0.1);
+	fvm.SetMinconvergenceV(0.1);
+	fvm.SetMinconvergenceT(0.1);
 	vector<Node*> Vx,Vy,P;
 	fvm.SolveSIMPLE(Vx, Vy, P, maxIter);
 	string fileName = "..\\Data\\FVM_Grid.output.txt";
@@ -1035,13 +1054,13 @@ bool tester_FVM_Grid_9(int& NumTests)
 	G.GetMesh2D()->print("..\\Data\\tester_FVM_Grid_7.Grid.txt");
 	FVM_Grid::alpha_p = 0.3;
 	FVM_Grid::alpha_v = 0.3;
-	FVM_Grid::ConvergenceTolVx = 1e-3;
-	FVM_Grid::ConvergenceTolVy = 1e-3;
-	FVM_Grid::ConvergenceTolP = 1e-3;
 	FVM_Grid fvm(G);
 	fvm.SetFlowForcedConvectionProblem(Re, Pe);
 	fvm.SetVelocityBoundaryConditions(VBx, VBy);
 	fvm.SetThermalBoundaryConditions(TB);
+	fvm.SetMinconvergenceP(0.1);
+	fvm.SetMinconvergenceV(0.1);
+	fvm.SetMinconvergenceT(0.1);
 	vector<Node*> Vx, Vy, P, T;
 	fvm.SolveSIMPLE(Vx, Vy, P, T, maxIter);
 	string fileName = "..\\Data\\FVM_Grid.output.txt";
@@ -1107,14 +1126,14 @@ bool tester_FVM_Grid_10(int& NumTests)//RBC Box
 	bGrid G(Nx, Ny, Lx, Ly);
 	FVM_Grid::alpha_p = 0.3;
 	FVM_Grid::alpha_v = 0.3;
-	FVM_Grid::ConvergenceTolVx = 1e-3;
-	FVM_Grid::ConvergenceTolVy = 1e-3;
-	FVM_Grid::ConvergenceTolP = 1e-3;
 	FVM_Grid fvm(G); 
 	fvm.SetFlowNaturalConvectionProblem(Ra, Pr);
 	BoundaryValues ZeroBC(0);
 	fvm.SetVelocityBoundaryConditions(ZeroBC, ZeroBC);
 	fvm.SetThermalBoundaryConditions(ZeroBC);
+	fvm.SetMinconvergenceP(0.1);
+	fvm.SetMinconvergenceV(0.1);
+	fvm.SetMinconvergenceT(0.1);
 	vector<Node*> Vx, Vy, P, T;
 	fvm.SolveSIMPLE(Vx, Vy, P, T, maxIter);
 	ofstream fout; 
@@ -1180,9 +1199,6 @@ bool tester_FVM_Grid_12(int& NumTests)//test # 10 , infinitely extended RBC.
 	bGrid G(Nx, Ny, Lx, Ly);
 	FVM_Grid::alpha_p = 0.1;
 	FVM_Grid::alpha_v = 0.1;
-	FVM_Grid::ConvergenceTolVx = 1e-3;
-	FVM_Grid::ConvergenceTolVy = 1e-3;
-	FVM_Grid::ConvergenceTolP = 1e-3;
 	FVM_Grid fvm(G);
 	fvm.SetFlowNaturalConvectionProblem(Ra, Pr);
 	BoundaryValues nullBC;
@@ -1202,6 +1218,9 @@ bool tester_FVM_Grid_12(int& NumTests)//test # 10 , infinitely extended RBC.
 	fvm.SetThermalBoundaryConditions(BT);
 	fvm.SetThermalGradientBoundaryConditions(dBT_dx);
 	vector<Node*> Vx, Vy, P, T;
+	fvm.SetMinconvergenceP(0.1);
+	fvm.SetMinconvergenceV(0.1);
+	fvm.SetMinconvergenceT(0.1);
 	fvm.SolveSIMPLE(Vx, Vy, P, T, maxIter);
 	ofstream fout;
 	string fileNameThermal = "..\\Data\\FVM_Grid.T.csv";

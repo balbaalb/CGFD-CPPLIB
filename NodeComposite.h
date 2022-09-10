@@ -47,6 +47,8 @@ class NodeComposite
 	void populate_basedOn_CELLS_AND_BOUNDARY();
 	void populate_basedOn_EDGES_AND_BOUNDARY();
 	void ApplyBC_internal(string caller);
+	public: enum METHOD { GAUSS_ELIMINATION, GAUSS_SEIDEL };
+	private: METHOD solveMethod{ METHOD::GAUSS_ELIMINATION };
 public:
 	NodeComposite();
 	NodeComposite(const NodeComposite& rhs);
@@ -66,6 +68,8 @@ public:
 	void SetConstantNormalGradient(GeoGraphObject* objPtr, double value);
 	void SetConstantNormalGradient(GeoGraphObject* objPtr, function<double(const Vector3D& P)> f);
 	void SetValueAllNodes(function<double(const Vector3D& P)> func, bool basedOnVertices = true);
+	void SetSolveMethod(METHOD value, double tolerance = 1.0e-6);
+	void StabilizeK();
 	void Solve();
 	double SolveAndUpdate(double underRelaxation = 1);
 	double SolveAndAdd(double underRelaxation = 1);

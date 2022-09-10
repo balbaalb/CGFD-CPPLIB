@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iostream>
 #include "FVM.h"
 #include "MathUtils.h"
 #include "Vector.h"
@@ -438,13 +439,13 @@ void FVM::AddConvection_cellBased(NodeComposite& nodes)
 				double Phi_downstream{0}, Phi_upstream{0};
 				if (flux > 0)
 				{
-					nodes.AddToK(f, f, -flux);
 					Phi_downstream = Phi1;
 					Phi_upstream = Phi0;
 				}
 				else
 				{
 					nodes.AddToK(f, colPtr, -flux);
+					aP += -flux;
 					Phi_downstream = Phi0;
 					Phi_upstream = Phi1;
 				}
@@ -453,6 +454,7 @@ void FVM::AddConvection_cellBased(NodeComposite& nodes)
 				b += -flux * psi(r) / 2.0 * dPhi;
 				e = ite.Next();
 			}
+			nodes.AddToK(f, f, -aP);
 			nodes.AddToC(f, -b);
 		}
 		f = itf.Next();
@@ -487,6 +489,8 @@ void FVM::SolveSIMPLE_v()
 		}
 		f = itf.Next();
 	}
+	this->VxNodes.StabilizeK();
+	this->VyNodes.StabilizeK();
 	this->ConvergenceV[0] = this->VxNodes.SolveAndUpdate(this->alpha_v);
 	this->ConvergenceV[1] = this->VyNodes.SolveAndUpdate(this->alpha_v);
 }
@@ -595,6 +599,7 @@ void FVM::SolveSIMPLE_p()
 		f = itf.Next();
 	}
 	this->PNodes.SetValueInEquations(f0, 0);
+	this->PNodes.StabilizeK();
 	this->ConvergenceP = this->PNodes.SolveAndAdd(this->alpha_p);
 	this->PNodes.Populate();
 }
@@ -935,6 +940,25 @@ void FVM::SetFlowProblem(double Re)
 	liq.viscosity = 1.0 / Re;
 	this->SetFlowProblem(liq);
 }
+void FVM::SetMinconvergenceV(double value)
+{
+	this->MinConvergenceV = value;
+}
+void FVM::SetMinconvergenceP(double value)
+{
+	this->MinConvergenceP = value;
+}
+void FVM::SetMinconvergenceT(double value)
+{
+	this->MinConvergenceT = value;
+}
+void FVM::SetSolveMethod(NodeComposite::METHOD value, double tolerance)
+{
+	this->TNodes.SetSolveMethod(value, tolerance);
+	this->VxNodes.SetSolveMethod(value, tolerance);
+	this->VyNodes.SetSolveMethod(value, tolerance);
+	this->PNodes.SetSolveMethod(value, tolerance);
+}
 void FVM::Solve(vector<Node*>& results)
 {
 	if (this->mode == MODE::SIMPLE)
@@ -943,7 +967,6 @@ void FVM::Solve(vector<Node*>& results)
 		this->constantDensity = this->liquid.density;
 		int iter = -1;
 		int max_iter = 50;
-		double Min_convergence = 0.001;
 		while (iter < max_iter)
 		{
 			++iter;
@@ -952,7 +975,7 @@ void FVM::Solve(vector<Node*>& results)
 			this->SolveSIMPLE_p();
 			this->SolveSIMPLE_gradP();
 			this->SolveSIMPLE_CorrectV();
-			if (this->ConvergenceV[0] < 0.01 && this->ConvergenceV[1] < 0.01 && this->ConvergenceP < 0.01)
+			if (this->ConvergenceV[0] < this->MinConvergenceV && this->ConvergenceV[1] < this->MinConvergenceV && this->ConvergenceP < this->MinConvergenceP)
 				break;
 		}
 		this->VxNodes.Populate();
@@ -972,7 +995,6 @@ void FVM::Solve(vector<Node*>& results)
 		{
 			int iter = -1;
 			int max_iter = 50;
-			double Min_convergence = 0.001;
 			while (iter < max_iter)
 			{
 				++iter;
@@ -985,8 +1007,9 @@ void FVM::Solve(vector<Node*>& results)
 					this->populateVelocities(this->vFunction);
 					this->AddConvection_cellBased(this->TNodes);
 				}
+				this->TNodes.StabilizeK();
 				double convergence = this->TNodes.SolveAndUpdate();
-				if (convergence < Min_convergence)
+				if (convergence < this->MinConvergenceT)
 					break;
 				this->TNodes.Populate();
 			}
@@ -1040,28 +1063,40 @@ void FVM::SetalphaV(double value)
 }
 bool tester_FVM(int& NumTests)
 {
+	cout << std::endl << "tester_FVM_1 test ..." << flush;
 	if (!tester_FVM_1(NumTests))
 		return false;
+	cout << "okay!" << endl << "tester_FVM_2 test ..." << flush;
 	if (!tester_FVM_2(NumTests))
 		return false;
+	cout << "okay!" << endl << "tester_FVM_3 test ..." << flush;
 	if (!tester_FVM_3(NumTests))
 		return false;
+	cout << "okay!" << endl << "tester_FVM_4 test ..." << flush;
 	if (!tester_FVM_4(NumTests))
 		return false;
+	cout << "okay!" << endl << "tester_FVM_5 test ..." << flush;
 	if (!tester_FVM_5(NumTests))
 		return false;
+	cout << "okay!" << endl << "tester_FVM_6 test ..." << flush;
 	if (!tester_FVM_6(NumTests))
 		return false;
+	cout << "okay!" << endl << "tester_FVM_7 test ..." << flush;
 	if (!tester_FVM_7(NumTests))
 		return false;
+	cout << "okay!" << endl << "tester_FVM_8 test ..." << flush;
 	if (!tester_FVM_8(NumTests))
 		return false;
+	cout << "okay!" << endl << "tester_FVM_9 test ..." << flush;
 	if (!tester_FVM_9(NumTests))
 		return false;
+	cout << "okay!" << endl << "tester_FVM_10 test ..." << flush;
 	if (!tester_FVM_10(NumTests))
 		return false;
+	cout << "okay!" << endl << "tester_FVM_11 test ..." << flush;
 	if (!tester_FVM_11(NumTests))
 		return false;
+	cout << "okay!" << endl;
 	++NumTests;
 	return true;
 }
@@ -1635,16 +1670,19 @@ bool tester_FVM_10(int& NumTests)
 	auto VyBC = [](const Vector3D& P)->double {return 0; };
 	fvm.SetVyBoundaryConditions(VyBC);
 	//-----Solve---------------------
+	fvm.SetMinconvergenceP(0.01);
+	fvm.SetMinconvergenceV(0.01);
 	vector<Node*> PNodes;
+	fvm.SetSolveMethod(NodeComposite::GAUSS_SEIDEL, 0.0005);
 	fvm.Solve(PNodes);
 	//------Check-------------------
 	QuadEdge* qe = fvm.GetMesh2D();
 	FaceIterator itf(qe);
 	Face* f = itf.Next();
 	int counter = 0;
-	double vx[4]{ 0,0,0,0 };
-	double vy[4]{ 0,0,0,0 };
-	double pres[4]{ 0,0,0,0 };
+	double vx[]{ 0,0,0,0 };
+	double vy[]{ 0,0,0,0 };
+	double pres[]{ 0,0,0,0 };
 	while (f)
 	{
 		if (f != fvm.GetBoundary())
@@ -1668,27 +1706,31 @@ bool tester_FVM_10(int& NumTests)
 		}
 		f = itf.Next();
 	}
-	if (fabs(vx[0] + 0.79109) > 0.01)
+	double vx_excel[]{  -0.735310619, -0.072300993, -0.542573676, +4.642079457 };
+	double vy_excel[]{  -0.018760289, +0.000837618, -0.007909445, +0.022266843 };
+	double p_excel[] {  -2.22359E-16, +2.26558847,  -2.139272655, +0.006419896 };
+
+	if (fabs(vx[0] - vx_excel[0]) > 0.01)
 		return false;
-	if (fabs(vy[0] + 0.12969) > 0.01)
+	if (fabs(vy[0] - vy_excel[0]) > 0.01)
 		return false;
-	if (fabs(vx[1] + 0.09023) > 0.01)
+	if (fabs(vx[1] - vx_excel[1]) > 0.01)
 		return false;
-	if (fabs(vy[1] - 0.007815) > 0.01)
+	if (fabs(vy[1] - vy_excel[1]) > 0.01)
 		return false;
-	if (fabs(pres[1] - pres[0] - 2.660528) > 0.01)
+	if (fabs(pres[1] - pres[0] - p_excel[1] + p_excel[0]) > 0.01)
 		return false;
-	if (fabs(vx[2] + 0.66303) > 0.01)
+	if (fabs(vx[2] - vx_excel[2]) > 0.01)
 		return false;
-	if (fabs(vy[2] + 0.07593) > 0.01)
+	if (fabs(vy[2] - vy_excel[2]) > 0.01)
 		return false;
-	if (fabs(pres[2] - pres[0] + 1.82535) > 0.01)
+	if (fabs(pres[2] - pres[0] - p_excel[2] + p_excel[0]) > 0.01)
 		return false;
-	if (fabs(vx[3]  - 4.815605) > 0.01)
+	if (fabs(vx[3] - vx_excel[3]) > 0.01)
 		return false;
-	if (fabs(vy[3] - 0.155603) > 0.01)
+	if (fabs(vy[3] - vy_excel[3]) > 0.01)
 		return false;
-	if (fabs(pres[3] - pres[0] - 0.026524) > 0.01)
+	if (fabs(pres[3] - pres[0] - p_excel[3] + p_excel[0]) > 0.01)
 		return false;
 	++NumTests;
 	return true;
@@ -1714,7 +1756,10 @@ bool tester_FVM_11(int& NumTests)
 	fvm.SetVyBoundaryConditions(VyBC);
 	fvm.SetAlphaP(0.1);
 	fvm.SetalphaV(0.1);
+	fvm.SetMinconvergenceP(0.1);
+	fvm.SetMinconvergenceV(0.1);
 	vector<Node*> Vx, Vy, P;
+	//fvm.SetSolveMethod(NodeComposite::GAUSS_SEIDEL, 0.01);
 	fvm.Solve(Vx, Vy, P);
 	string fileName = "..\\Data\\FVM_Grid.output.txt";
 	ofstream fout;

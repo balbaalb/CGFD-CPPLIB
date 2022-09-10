@@ -20,6 +20,9 @@ class FVM
 	double constantDensity{0};
 	double ConvergenceV[2] {0, 0};
 	double ConvergenceP{0};
+	double MinConvergenceV{ 0.001 };
+	double MinConvergenceP{ 0.001 };
+	double MinConvergenceT{ 0.001 };
 	double alpha_p{ 0.5 }, alpha_v{ 0.5 };
 	function<double(const Vector3D& P)> conductivityFunction {0};
 	function<double(const Vector3D& P)> vFunction[2] {0, 0};
@@ -65,6 +68,10 @@ public:
 	void SetTVD(TVD::MODE mode);
 	void SetFlowProblem(const LiquidProperties& liq);
 	void SetFlowProblem(double Re);
+	void SetMinconvergenceV(double value);
+	void SetMinconvergenceP(double value);
+	void SetMinconvergenceT(double value);
+	void SetSolveMethod(NodeComposite::METHOD value, double tolerance = 1.0e-6);
 	void Solve(vector<Node*>& results);
 	void Solve(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& P);
 	QuadEdge* GetMesh2D();

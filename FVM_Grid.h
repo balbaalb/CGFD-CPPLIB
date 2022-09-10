@@ -61,13 +61,12 @@ class FVM_Grid
 	double Lx;
 	double Ly;
 	TVD psi;
+	double MinConvergenceV{ 1.0e-6 };
+	double MinConvergenceP{ 1.0e-6 };
+	double MinConvergenceT{ 1.0e-6 };
 public:
 	static double alpha_p;//based on Patankar's equation (6.24), page 128
 	static double alpha_v;//relaxation value for V
-	static double ConvergenceTolVx;
-	static double ConvergenceTolVy;
-	static double ConvergenceTolP;
-	static double ConvergenceTolT;
 	static bool change_alpha;
 	FVM_Grid(const bGrid& G);
 	~FVM_Grid();
@@ -86,6 +85,10 @@ public:
 	void SetThermalGradientBoundaryConditions(const BoundaryValues& BT);
 	void SetVelocityBoundaryConditions(const BoundaryValues& Vx, const BoundaryValues& Vy);
 	void SetVelocityGradientBoundaryConditions(const BoundaryValues& Vx, const BoundaryValues& Vy);
+	void SetMinconvergenceV(double value);
+	void SetMinconvergenceP(double value);
+	void SetMinconvergenceT(double value);
+	void SetSolveMethod(NodeComposite::METHOD value, double tolerance = 1.0e-6);
 	void SolveThermalProblem(vector<Node*>& results);
 	void SolveSIMPLE(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& P, int maxIter);
 	void SolveSIMPLE(vector<Node*>& Vx, vector<Node*>& Vy, vector<Node*>& P, vector<Node*>& T, int maxIter);

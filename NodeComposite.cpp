@@ -776,10 +776,52 @@ void NodeComposite::SetValueAllNodes(function<double(const Vector3D& P)> func, b
 		}
 	}
 }
+void NodeComposite::SetSolveMethod(METHOD value, double tolerance)
+{
+	this->solveMethod = value;
+	if (this->K && this->solveMethod == METHOD::GAUSS_SEIDEL)
+	{
+		this->K->SetGaussSeidelTolerance(tolerance);
+	}
+}
+void NodeComposite::StabilizeK()
+{
+	/*To fix round up erros where aP is supposed to be equal or higher(in abs value) 
+		than a_nb as per the numerical reciepe of the discretization method.*/
+	if (this->K)
+	{
+		for (int i = 0; i < this->K->GetDim(); ++i)
+		{
+			double aP = fabs((*(this->K))(i, i));
+			double sum = 0;
+			for (int j = 0; j < this->K->GetDim(); ++j)
+			{
+				if (i != j)
+				{
+					sum += fabs((*(this->K))(i, j));
+				}
+			}
+			double delta = fabs(aP - sum);
+			if (aP < sum)
+			{
+				double alpha = 1.01;
+				(*(this->K))(i, i) += (*(this->K))(i, i) > 0 ? alpha * delta : -alpha * delta;
+			}
+		}
+	}
+}
 void NodeComposite::Solve()
 {
 	this->ApplyBC_internal("Solve");
-	*(this->X) = this->K->Solve(*C);
+	bool fixRoundOffError = true;
+	if (this->solveMethod == METHOD::GAUSS_SEIDEL && this->K->CanUse_GaussSeidel(fixRoundOffError))
+	{
+		*(this->X) = this->K->Solve(*C, SquareMatrix::METHOD::GAUSS_SEIDEL);
+	}
+	else
+	{
+		*(this->X) = this->K->Solve(*C, SquareMatrix::METHOD::GAUSS_ELIMINATION);
+	}
 }
 double NodeComposite::SolveAndUpdate(double underRelaxation)
 {
