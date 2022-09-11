@@ -15,6 +15,7 @@ public:
 	SquareMatrix& operator=(const SquareMatrix& rhs);
 	int GetDim() const;
 	void SetGaussSeidelTolerance(double value);
+	double GetGaussSeidelTolerance() const;
 	bool CanUse_GaussSeidel(bool fixRoundOffError = false);
 	Vector Solve(const Vector& B, METHOD method = METHOD::GAUSS_ELIMINATION) const;
 };

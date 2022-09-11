@@ -54,6 +54,16 @@ void NodeComposite::CopyBody(const NodeComposite& rhs)
 	if(rhs.EdgeCondition)
 		this->SetEdgeCondition(rhs.qe, rhs.EdgeCondition);
 	this->initilized = rhs.initilized;
+	this->NeighborsIndex.resize(rhs.NeighborsIndex.size());
+	for (int i = 0; i < rhs.NeighborsIndex.size(); ++i)
+	{
+		
+		for (int j = 0; j < 3; ++j)
+		{
+			this->NeighborsIndex[i].ind[j] = rhs.NeighborsIndex[i].ind[j];
+		}
+	}
+	this->GaussSeidelTolerance = rhs.GaussSeidelTolerance;
 }
 void NodeComposite::Reset()
 {
@@ -434,7 +444,7 @@ void NodeComposite::ApplyBC_internal(string caller)
 {
 	for (auto it = this->constValues.begin(); it != this->constValues.end(); ++it)
 	{
-		if (this->IsIndependent(it->first));
+		if (this->IsIndependent(it->first))
 		{
 			if (caller == "Solve")
 				this->SetValueInEquations(it->first, it->second);
@@ -550,6 +560,31 @@ void NodeComposite::ApplyBC_internal(string caller)
 			}
 		}
 	}
+}
+void NodeComposite::Solve_CellBasedTriangulation()
+{
+	double alpha = 0.5;
+	Vector convergence(this->K->GetDim());
+	int counter = 0;
+	do
+	{
+		Vector X_old = (*this->X);
+		for (int i = 0; i < this->K->GetDim(); ++i)
+		{
+			double sum = (*(this->C))(i);
+			int n[3]{ 0,0,0 };
+
+			for (int jj = 0; jj < 3; ++jj)
+			{
+				int j = this->NeighborsIndex[i].ind[jj];
+				sum -= (j != -1) ? (*this->K)(i, j) * (*this->X)(j) : 0;
+			}
+			(*this->X)(i) = sum / (*this->K)(i, i);
+		}
+		(*this->X) = (*this->X) * alpha + X_old * (1.0 - alpha);
+		convergence = (*this->X) - X_old;
+		++counter;
+	} while (counter < 1000 && (counter < 1 || convergence.abs() > this->K->GetGaussSeidelTolerance()));
 }
 NodeComposite::NodeComposite()
 {
@@ -779,9 +814,56 @@ void NodeComposite::SetValueAllNodes(function<double(const Vector3D& P)> func, b
 void NodeComposite::SetSolveMethod(METHOD value, double tolerance)
 {
 	this->solveMethod = value;
-	if (this->K && this->solveMethod == METHOD::GAUSS_SEIDEL)
+	if (this->solveMethod == METHOD::TRIANGULATION_CELL_BASED
+		&& this->type != NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY
+		&& this->type != NODE_COMPOSITE_TYPE::CELLS)
 	{
-		this->K->SetGaussSeidelTolerance(tolerance);
+		this->solveMethod = METHOD::GAUSS_SEIDEL;
+	}
+	if (this->solveMethod == METHOD::GAUSS_SEIDEL || this->solveMethod == METHOD::TRIANGULATION_CELL_BASED)
+	{
+		this->GaussSeidelTolerance = tolerance;
+	}
+	if (this->solveMethod == METHOD::TRIANGULATION_CELL_BASED)
+	{
+		this->NeighborsIndex.resize(this->index);
+		FaceIterator itf(this->qe);
+		Face* f = itf.Next();
+		while (f)
+		{
+			if (f != this->fb)
+			{
+				int n = this->NodeHash[f]->index;
+				EdgeIterator ite(f);
+				for (int i = 0; i < 3; ++i)
+				{
+					Edge* e = ite.Next();
+					Face* f1 = e->GetOtherFace(f);
+					if (f1 != fb)
+					{
+						this->NeighborsIndex[n].ind[i] = this->NodeHash[f1]->index;
+					}
+					else if(this->type == NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY)
+					{
+						this->NeighborsIndex[n].ind[i] = this->NodeHash[e]->index;
+					}
+				}
+			}
+			f = itf.Next();
+		}
+		if (this->type == NODE_COMPOSITE_TYPE::CELLS_AND_BOUNDARY)
+		{
+			EdgeIterator ite(this->fb);
+			Edge* e = ite.Next();
+			while (e)
+			{
+				int n = this->NodeHash[e]->index;
+				Face* f1 = e->GetOtherFace(this->fb);
+				this->NeighborsIndex[n].ind[0] = this->NodeHash[f1]->index;
+				e = ite.Next();
+			}
+			int test = 0;
+		}
 	}
 }
 void NodeComposite::StabilizeK()
@@ -816,7 +898,12 @@ void NodeComposite::Solve()
 	bool fixRoundOffError = true;
 	if (this->solveMethod == METHOD::GAUSS_SEIDEL && this->K->CanUse_GaussSeidel(fixRoundOffError))
 	{
+		this->K->SetGaussSeidelTolerance(this->GaussSeidelTolerance);
 		*(this->X) = this->K->Solve(*C, SquareMatrix::METHOD::GAUSS_SEIDEL);
+	}
+	if (this->solveMethod == METHOD::TRIANGULATION_CELL_BASED && this->K->CanUse_GaussSeidel(fixRoundOffError))
+	{
+		this->Solve_CellBasedTriangulation();
 	}
 	else
 	{

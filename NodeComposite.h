@@ -34,9 +34,15 @@ class NodeComposite
 	SquareMatrix* K;
 	Vector* C;
 	Vector* X; //stores the last solution
+	struct int3 
+	{
+		int ind[3]{-1,-1,-1};
+	};
+	vector<int3> NeighborsIndex;//Special for cell_based methodon triangulation
 	typedef unordered_map<Edge*, bool> EdgeConditionMap;
 	EdgeConditionMap* EdgeCondition;
 	bool initilized{ false };
+	double GaussSeidelTolerance{ 1.0e-6 };
 	void CopyBody(const NodeComposite& rhs);
 	void Reset();
 	void AddNode(GeoGraphObject* gPtr);
@@ -47,7 +53,8 @@ class NodeComposite
 	void populate_basedOn_CELLS_AND_BOUNDARY();
 	void populate_basedOn_EDGES_AND_BOUNDARY();
 	void ApplyBC_internal(string caller);
-	public: enum METHOD { GAUSS_ELIMINATION, GAUSS_SEIDEL };
+	void Solve_CellBasedTriangulation();
+	public: enum METHOD { GAUSS_ELIMINATION, GAUSS_SEIDEL, TRIANGULATION_CELL_BASED};
 	private: METHOD solveMethod{ METHOD::GAUSS_ELIMINATION };
 public:
 	NodeComposite();

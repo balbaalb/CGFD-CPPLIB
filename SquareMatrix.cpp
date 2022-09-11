@@ -22,6 +22,10 @@ void SquareMatrix::SetGaussSeidelTolerance(double value)
 {
 	this->GaussSeidelTolerance = value;
 }
+double SquareMatrix::GetGaussSeidelTolerance() const
+{
+	return this->GaussSeidelTolerance;
+}
 double SquareMatrix::MakeUpperTriangular(Vector* b)
 {
 	bool doPivotting = true;
@@ -129,7 +133,6 @@ Vector SquareMatrix::Solve_GaussSeidel(const Vector& B) const
 	Vector convergence(this->GetDim());
 	int counter = 0;
 	Vector X(this->GetDim());
-	bool can_use_GaussSeidel = true;
 	do
 	{
 		Vector X_old = X;
@@ -154,10 +157,8 @@ bool SquareMatrix::CanUse_GaussSeidel(bool fixRoundOffError)
 	{
 		bool acceptable = false;
 		double sum = 0;
-		double* a = new double[this->GetDim()];
 		for (int j = 0; j < this->GetDim(); ++j)
 		{
-			a[j] = (*this)(i, j);
 			sum += (i != j) ? fabs((*this)(i, j)) : 0;
 			if (fabs((*this)(i, j)) > 1.0e-10)
 			{

@@ -1253,6 +1253,8 @@ bool tester_Triangulation(int& NumTests)
 		return false;
 	if (!tester_Triangulation_6(NumTests))
 		return false;
+	if (!tester_Triangulation_7(NumTests))
+		return false;
 	NumTests += 1;
 	return true;
 }
@@ -2795,5 +2797,39 @@ double Vx(double x, double y)
 double Vy(double x, double y)
 {
 	return 2.5;
+}
+bool tester_Triangulation_7(int& NumTests)
+{
+	{
+		double Lx = 6, Ly = 6;
+		Triangulation T = Triangulation::OffDiagonalGrid(1, 1, Lx, Ly);
+		T.PrintTriangulation();
+		EdgeIterator ite(T.GetBoundary());
+		Edge* e = ite.Next();
+		int counter = 0;
+		while (e && counter < 10)
+		{
+			++counter;
+			e = ite.Next();
+		}
+		if (counter != 4)
+			return false;
+	}
+	{
+		double Lx = 6, Ly = 6; 
+		Triangulation T = Triangulation::OffDiagonalGrid(2, 2, Lx, Ly);
+		EdgeIterator ite(T.GetBoundary());
+		Edge* e = ite.Next();
+		int counter = 0;
+		while (e && counter < 100)
+		{
+			++counter;
+			e = ite.Next();
+		}
+		if (counter != 8)
+			return false; 
+	}
+	NumTests += 1;
+	return true;
 }
 

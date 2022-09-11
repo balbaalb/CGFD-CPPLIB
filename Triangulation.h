@@ -111,4 +111,5 @@ bool tester_Triangulation_3(int& NumTests);
 bool tester_Triangulation_4(int& NumTests);
 bool tester_Triangulation_5(int& NumTests);
 bool tester_Triangulation_6(int& NumTests);
+bool tester_Triangulation_7(int& NumTests);
 #endif 

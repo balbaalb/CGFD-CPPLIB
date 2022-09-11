@@ -954,10 +954,14 @@ void FVM::SetMinconvergenceT(double value)
 }
 void FVM::SetSolveMethod(NodeComposite::METHOD value, double tolerance)
 {
-	this->TNodes.SetSolveMethod(value, tolerance);
-	this->VxNodes.SetSolveMethod(value, tolerance);
-	this->VyNodes.SetSolveMethod(value, tolerance);
-	this->PNodes.SetSolveMethod(value, tolerance);
+	if(this->TNodes.IsInitialized())
+		this->TNodes.SetSolveMethod(value, tolerance);
+	if (this->VxNodes.IsInitialized())
+		this->VxNodes.SetSolveMethod(value, tolerance);
+	if (this->VyNodes.IsInitialized())
+		this->VyNodes.SetSolveMethod(value, tolerance);
+	if (this->PNodes.IsInitialized())
+		this->PNodes.SetSolveMethod(value, tolerance);
 }
 void FVM::Solve(vector<Node*>& results)
 {
@@ -1555,6 +1559,7 @@ bool tester_FVM_7(int& NumTests)
 	fvm.SetThermalBoundaryConditions(temperatureField);
 	fvm.AddDiffusion(k);
 	vector<Node*> results;
+	fvm.SetSolveMethod(NodeComposite::METHOD::TRIANGULATION_CELL_BASED);
 	fvm.Solve(results);
 	double max_abs_error = 0;
 	double max_error_percent = 0;
@@ -1586,6 +1591,7 @@ bool tester_FVM_8(int& NumTests)
 	fvm.SetThermalBoundaryConditions(temperatureField);
 	fvm.AddDiffusion(k);
 	vector<Node*> results;
+	fvm.SetSolveMethod(NodeComposite::METHOD::TRIANGULATION_CELL_BASED);
 	fvm.Solve(results);
 	double max_abs_error = 0;
 	double max_error_percent = 0;
@@ -1624,6 +1630,7 @@ bool tester_FVM_9(int& NumTests)
 	auto temperatureField = [conv](const Vector3D& P) {return conv.T(P); };
 	fvm.SetThermalBoundaryConditions(temperatureField);
 	vector<Node*> results;
+	fvm.SetSolveMethod(NodeComposite::METHOD::TRIANGULATION_CELL_BASED);
 	fvm.Solve(results);
 	double max_abs_error = 0;
 	double max_error_percent = 0;
@@ -1673,7 +1680,7 @@ bool tester_FVM_10(int& NumTests)
 	fvm.SetMinconvergenceP(0.01);
 	fvm.SetMinconvergenceV(0.01);
 	vector<Node*> PNodes;
-	fvm.SetSolveMethod(NodeComposite::GAUSS_SEIDEL, 0.0005);
+	fvm.SetSolveMethod(NodeComposite::METHOD::TRIANGULATION_CELL_BASED, 0.005);
 	fvm.Solve(PNodes);
 	//------Check-------------------
 	QuadEdge* qe = fvm.GetMesh2D();
@@ -1759,7 +1766,7 @@ bool tester_FVM_11(int& NumTests)
 	fvm.SetMinconvergenceP(0.1);
 	fvm.SetMinconvergenceV(0.1);
 	vector<Node*> Vx, Vy, P;
-	//fvm.SetSolveMethod(NodeComposite::GAUSS_SEIDEL, 0.01);
+	fvm.SetSolveMethod(NodeComposite::METHOD::TRIANGULATION_CELL_BASED, 0.01);
 	fvm.Solve(Vx, Vy, P);
 	string fileName = "..\\Data\\FVM_Grid.output.txt";
 	ofstream fout;
