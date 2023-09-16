@@ -4,3 +4,5 @@ GdiplusStartup.txt
 LearningBoard.cpp
 LearningBoard.h
 .vs
+.vscode/*.*
+*.exe

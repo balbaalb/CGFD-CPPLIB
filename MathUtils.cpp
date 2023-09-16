@@ -1,6 +1,6 @@
 #include <cmath>
-#include <MathUtils.h>
 #include <algorithm>
+#include "MathUtils.h"
 void SolveQuad(double a,double b, double c, double& Root1Real,double& Root1imag, double& Root2Real, double& Root2imag)
 //solving a*x^2+b*x+c = 0.
 {

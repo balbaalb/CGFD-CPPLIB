@@ -1,5 +1,6 @@
 #include <unordered_set>
 #include <iomanip>
+#include <sstream>
 #include "QuadEdge.h"
 #include "Circle.h"
 #include "Face.h"
@@ -1739,100 +1740,14 @@ void QuadEdge::Write(string fileName)
 {
 	ofstream file;
 	file.open(fileName.c_str(), fstream::out);
-	QuadEdgeIndex qui(this);
-	int Nv = this->NumVertices();
-	int Nf = this->NumFaces();
-	int Ne = this->NumEdges();
-	file << Nv << "," << Nf << "," << Ne << ";";
-	VertexIterator itv(this);
-	Vertex* v = itv.Next();
-	for (int i = 0; i < Nv; ++i)
-	{
-		Vertex* v = qui.GetVertex(i);
-		if (v)
-		{
-			Vector3D P = v->GetPoint();
-			file << endl << std::setprecision(10) << P(0) << "," << P(1) << "," << P(2) << "," << qui.GetIndex(v->GetEdge()) << ";";
-		}
-		else
-			file << endl << "NULL";
-
-	}
-	for (int i = 0; i < Nf; ++i)
-	{
-		Face* f = qui.GetFace(i);
-		if (f)
-		{
-			file << endl << qui.GetIndex(f->GetEdge()) << ";";
-		}
-		else
-			file << endl << "NULL";
-	}
-	for (int i = 0; i < Ne; ++i)
-	{
-		Edge* e = qui.GetEdge(i);
-		if (e)
-		{
-			file << endl << qui.GetIndex(e->GetOrig()) << "," << qui.GetIndex(e->GetDest()) << ",";
-			file << qui.GetIndex(e->GetLeft()) << "," << qui.GetIndex(e->GetRight()) << ",";
-			file << qui.GetIndex(e->GetNextOrig()) << "," << qui.GetIndex(e->GetNextDest()) << ",";
-			file << qui.GetIndex(e->GetPrevOrig()) << "," << qui.GetIndex(e->GetPrevDest()) << ",";
-			file << qui.GetIndex(e->GetNextLeft()) << "," << qui.GetIndex(e->GetNextRight()) << ",";
-			file << qui.GetIndex(e->GetPrevLeft()) << "," << qui.GetIndex(e->GetPrevRight()) << ";";
-		}
-		else
-			file << endl << "NULL";
-	}
+	file << (*this);
 	file.close();
 }
 void QuadEdge::Read(string fileName)
 {
 	ifstream file;
 	file.open(fileName.c_str(), fstream::in); 
-	string str;
-	std::getline(file, str, ',');	int Nv = stoi(str);
-	std::getline(file, str, ',');	int Nf = stoi(str);
-	std::getline(file, str, ';');	int Ne = stoi(str);
-	vector<Vertex*> v;
-	vector<Face*> f;
-	vector<Edge*> e;
-	v.resize(Nv, 0);
-	e.resize(Ne, 0);
-	f.resize(Nf, 0);
-	for (int i = 0; i < Nf; ++i)
-		f[i] = this->AddFace();
-	for (int i = 0; i < Ne; ++i)
-		e[i] = this->AddEdge();
-	for (int i = 0; i < Nv; ++i)
-	{
-		std::getline(file, str, ',');		double x = stod(str);
-		std::getline(file, str, ',');		double y = stod(str);
-		std::getline(file, str, ',');		double z = stod(str);
-		Vector3D P(x, y, z);
-		v[i] = this->AddVertex(P);
-		std::getline(file, str, ';');		int j = stoi(str);		v[i]->SetEdge(e[j]);
-	}
-	for (int i = 0; i < Nf; ++i)
-	{
-		std::getline(file, str, ';');
-		int j = stoi(str);
-		f[i]->SetEdge(e[j]);
-	}
-	for (int i = 0; i < Ne; ++i)
-	{
-		std::getline(file, str, ',');		int j = stoi(str);		e[i]->SetOrig(v[j]);
-		std::getline(file, str, ',');		j = stoi(str);			e[i]->SetDest(v[j]);
-		std::getline(file, str, ',');		j = stoi(str);			e[i]->SetLeft(f[j]);
-		std::getline(file, str, ',');		j = stoi(str);			e[i]->SetRight(f[j]);
-		std::getline(file, str, ',');		j = stoi(str);			e[i]->SetNextOrig(e[j]);
-		std::getline(file, str, ',');		j = stoi(str);			e[i]->SetNextDest(e[j]);
-		std::getline(file, str, ',');		j = stoi(str);			e[i]->SetPrevOrig(e[j]);
-		std::getline(file, str, ',');		j = stoi(str);			e[i]->SetPrevDest(e[j]);
-		std::getline(file, str, ',');		j = stoi(str);			e[i]->SetNextLeft(e[j]);
-		std::getline(file, str, ',');		j = stoi(str);			e[i]->SetNextRight(e[j]);
-		std::getline(file, str, ',');		j = stoi(str);			e[i]->SetPrevLeft(e[j]);
-		std::getline(file, str, ';');		j = stoi(str);			e[i]->SetPrevRight(e[j]);
-	}
+	file >> (*this);
 	file.close();
 }
 void QuadEdge::GetPoints(vector<Vector3D>& points)
@@ -1846,6 +1761,102 @@ void QuadEdge::GetPoints(vector<Vector3D>& points)
 		points.push_back(P);
 		v = itv.Next();
 	}
+}
+ostream& operator<<(ostream& out, QuadEdge& qe)
+{
+	QuadEdgeIndex qui(&qe);
+	int Nv = qe.NumVertices();
+	int Nf = qe.NumFaces();
+	int Ne = qe.NumEdges();
+	out << Nv << "," << Nf << "," << Ne << ";";
+	VertexIterator itv(&qe);
+	Vertex* v = itv.Next();
+	for (int i = 0; i < Nv; ++i)
+	{
+		Vertex* v = qui.GetVertex(i);
+		if (v)
+		{
+			Vector3D P = v->GetPoint();
+			out << endl << std::setprecision(10) << P(0) << "," << P(1) << "," << P(2) << "," << qui.GetIndex(v->GetEdge()) << ";";
+		}
+		else
+			out << endl << "NULL";
+
+	}
+	for (int i = 0; i < Nf; ++i)
+	{
+		Face* f = qui.GetFace(i);
+		if (f)
+		{
+			out << endl << qui.GetIndex(f->GetEdge()) << ";";
+		}
+		else
+			out << endl << "NULL";
+	}
+	for (int i = 0; i < Ne; ++i)
+	{
+		Edge* e = qui.GetEdge(i);
+		if (e)
+		{
+			out << endl << qui.GetIndex(e->GetOrig()) << "," << qui.GetIndex(e->GetDest()) << ",";
+			out << qui.GetIndex(e->GetLeft()) << "," << qui.GetIndex(e->GetRight()) << ",";
+			out << qui.GetIndex(e->GetNextOrig()) << "," << qui.GetIndex(e->GetNextDest()) << ",";
+			out << qui.GetIndex(e->GetPrevOrig()) << "," << qui.GetIndex(e->GetPrevDest()) << ",";
+			out << qui.GetIndex(e->GetNextLeft()) << "," << qui.GetIndex(e->GetNextRight()) << ",";
+			out << qui.GetIndex(e->GetPrevLeft()) << "," << qui.GetIndex(e->GetPrevRight()) << ";";
+		}
+		else
+			out << endl << "NULL";
+	}
+	return out;
+}
+istream& operator>>(istream& in, QuadEdge& qe)
+{
+	string str;
+	std::getline(in, str, ',');	int Nv = stoi(str);
+	std::getline(in, str, ',');	int Nf = stoi(str);
+	std::getline(in, str, ';');	int Ne = stoi(str);
+	vector<Vertex*> v;
+	vector<Face*> f;
+	vector<Edge*> e;
+	v.resize(Nv, 0);
+	e.resize(Ne, 0);
+	f.resize(Nf, 0);
+	for (int i = 0; i < Nf; ++i)
+		f[i] = qe.AddFace();
+	for (int i = 0; i < Ne; ++i)
+		e[i] = qe.AddEdge();
+	for (int i = 0; i < Nv; ++i)
+	{
+		std::getline(in, str, ',');		double x = stod(str);
+		std::getline(in, str, ',');		double y = stod(str);
+		std::getline(in, str, ',');		double z = stod(str);
+		Vector3D P(x, y, z);
+		v[i] = qe.AddVertex(P);
+		std::getline(in, str, ';');		int j = stoi(str);		v[i]->SetEdge(e[j]);
+	}
+	for (int i = 0; i < Nf; ++i)
+	{
+		std::getline(in, str, ';');
+		int j = stoi(str);
+		f[i]->SetEdge(e[j]);
+	}
+	for (int i = 0; i < Ne; ++i)
+	{
+		std::getline(in, str, ',');		int j = stoi(str);		e[i]->SetOrig(v[j]);
+		std::getline(in, str, ',');		j = stoi(str);			e[i]->SetDest(v[j]);
+		std::getline(in, str, ',');		j = stoi(str);			e[i]->SetLeft(f[j]);
+		std::getline(in, str, ',');		j = stoi(str);			e[i]->SetRight(f[j]);
+		std::getline(in, str, ',');		j = stoi(str);			e[i]->SetNextOrig(e[j]);
+		std::getline(in, str, ',');		j = stoi(str);			e[i]->SetNextDest(e[j]);
+		std::getline(in, str, ',');		j = stoi(str);			e[i]->SetPrevOrig(e[j]);
+		std::getline(in, str, ',');		j = stoi(str);			e[i]->SetPrevDest(e[j]);
+		std::getline(in, str, ',');		j = stoi(str);			e[i]->SetNextLeft(e[j]);
+		std::getline(in, str, ',');		j = stoi(str);			e[i]->SetNextRight(e[j]);
+		std::getline(in, str, ',');		j = stoi(str);			e[i]->SetPrevLeft(e[j]);
+		std::getline(in, str, ';');		j = stoi(str);			e[i]->SetPrevRight(e[j]);
+	}
+	return in;
 }
 bool tester_QuadEdge(int& NumTests)
 {
@@ -2908,10 +2919,10 @@ bool tester_QuadEdge_4(int& NumTests)
 	Vector3D v0, v1(1.1), v2(0, 1.2), v3(0, 0, 1.3584); 
 	QuadEdge Tetra1;
 	Tetra1.SetAsTetrahedron(v0, v1, v2, v3);
-	string fileName = "..\\Data\\Tetra1.bqe";
-	Tetra1.Write(fileName);
+	stringstream qe_stream;
+	qe_stream << Tetra1;
 	QuadEdge Tetra2;
-	Tetra2.Read(fileName);
+	qe_stream >> Tetra2;
 	Tetra2.IssueIndices();
 	Tetra2.print("..\\Data\\Tetra2.txt");
 	//---------------------------------------------------------------------------------------
@@ -2934,11 +2945,10 @@ bool tester_QuadEdge_4(int& NumTests)
 	c.point1 = 8; c.point2 = 4; input.constraints.push_back(c);
 	Triangulation T = RuppertShewchuk::Tessellate(input, 1000);
 	QuadEdge* qe = T.GetMesh2D();
-	fileName = "..\\Data\\RS10x10.bqe";
-	qe->Write(fileName);
-	qe->PrintTestScript("..\\Data\\RS_10x10.txt");
+	stringstream qe_stream2;
+	qe_stream2 << (*qe);
 	QuadEdge* qe2 = new QuadEdge;
-	qe2->Read("..\\Data\\RS10x10.bqe");
+	qe_stream2 >> (*qe2);
 	Vertex* v[20];
 	for (int i = 0; i < 20; ++i)
 	{

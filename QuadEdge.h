@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <iostream>
 using namespace std;
 class Vertex;
 class Edge;
@@ -110,6 +111,8 @@ public:
 	void Read(string fileName);
 	void GetPoints(vector<Vector3D>& points);//Needs independednt testing
 };
+ostream& operator<<(ostream& out, QuadEdge& qe);
+istream& operator>>(istream& in, QuadEdge& qe);
 bool tester_QuadEdge(int& NumTests);
 bool tester_QuadEdge_1(int& NumTests);
 bool tester_QuadEdge_Tetrahedron(QuadEdge& Tetrahedron, Vertex* v[4], Face* f[4], Edge* e[4], vector<Vector3D>& points);

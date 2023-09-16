@@ -1201,6 +1201,18 @@ Triangulation Triangulation::OffDiagonalGrid(int Nx, int Ny, double Lx, double L
 	T.GetMesh2D()->IssueIndices();
 	return T;
 }
+ostream& operator<<(ostream& out, Triangulation& T)
+{
+	out << *(T.GetMesh2D());
+	return out;
+}
+istream& operator>>(istream& in, Triangulation& T)
+{
+	QuadEdge qe;
+	in >> qe;
+	T << qe;
+	return in;
+}
 bool tester_Triangulation(int& NumTests)
 {
 	Vector3D A, B(1), C(0.5, 1), D(0.5, 0.5, 1);

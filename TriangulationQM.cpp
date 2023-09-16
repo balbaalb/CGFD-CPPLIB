@@ -1,6 +1,7 @@
 #include <fstream>
 #include <algorithm> 
 #include <queue>
+#include <sstream>
 #include "Triangulation.h"
 #include "Vector3D.h"
 #include "Circle.h"
@@ -2043,9 +2044,10 @@ bool tester_TriangulationQM_2(int& NumTests)
 	Vector3D A, B(2), C(2, 2), D(0, 2), E(0.5, 0.5), F(1.5, 0.5), G(1.5, 1.5), H(0.5, 1.5);
 	vector<Vector3D> input = { A,B,C,D,E,F,G,H };
 	Triangulation T0 = DelaunayLifting::Triangulate(input);
-	T0.Write("..\\Data\\test8.bqe");
+	stringstream T0_ss;
+	T0_ss << T0;
 	Triangulation T;
-	T.Read("..\\Data\\test8.bqe");
+	T0_ss >> T;
 	T.Write("..\\Data\\test8a.bqe");
 	vector<Vector3D> OrigPoints;
 	T.GetPoints(OrigPoints);

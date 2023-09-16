@@ -2,6 +2,7 @@
 #define TriangulationH
 #include <string>
 #include <memory>
+#include <iostream>
 #include "Circle.h"
 #include "Triangle.h"
 #include "MathUtils.h"
@@ -97,6 +98,8 @@ public:
 	void Draw(string fileName);
 	static Triangulation OffDiagonalGrid(int Nx, int Ny, double Lx, double Ly);
 };
+ostream& operator<<(ostream& out, Triangulation& T);
+istream& operator>>(istream& in, Triangulation& T);
 bool tester_Triangulation(int& NumTests);
 bool tester_Triangulation_1(int& NumTests);
 bool tester_Triangulation_1_0(int& NumTests, Triangulation& T, vector<Vector3D>& input);
