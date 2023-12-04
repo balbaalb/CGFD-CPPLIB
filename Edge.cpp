@@ -256,6 +256,7 @@ EDGE_RELATION Edge::DirectionTo(Edge* e1) const
 		return EDGES_SEQUENTIAL;
 	if (this->Orig == e1->Orig || this->Dest == e1->Dest)
 		return EDGES_NONSEQUENTIAL;
+	return EDGES_DISJOINT;
 }
 void Edge::UpdateNextRight(Edge* e)
 {

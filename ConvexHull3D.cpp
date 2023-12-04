@@ -285,6 +285,7 @@ Vertex* ConvexHull3D::AddPoint(const Vector3D& p, int index)
 		Vertex* v = this->AddPyramid(p, eBoundary);
 		return v;
 	}
+	return nullptr;
 }
 ConvexHull3D& ConvexHull3D::operator=(const ConvexHull3D& rhs)
 {
