@@ -258,7 +258,7 @@ ConvexHull3D::~ConvexHull3D()
 {
 	this->DeleteBody();
 }
-Vertex* ConvexHull3D::AddPoint(const Vector3D& p, int index)
+void ConvexHull3D::AddPoint(const Vector3D& p, int index)
 {
 	if (!this->hull)
 	{
@@ -272,20 +272,18 @@ Vertex* ConvexHull3D::AddPoint(const Vector3D& p, int index)
 	{
 		bool pointAcceptable = this->PointAcceptable(p);
 		if (!pointAcceptable)
-			return 0;
+			return;
 		bool oneVisible = this->UpdateFacesVisibility(p);
 		if (!oneVisible)
-			return 0;//point is inside the convex hull
+			return;//point is inside the convex hull
 		Edge* eBoundary = this->FindOneBoundaryEdge();
 		if (!eBoundary)
 			throw "ConvexHull3D: Boundary edge is Null.";
 		this->UpdateEdgesVisibility();
 		this->DeleteEdges();
 		this->hull->SetNextVetexIndex(index);
-		Vertex* v = this->AddPyramid(p, eBoundary);
-		return v;
+		this->AddPyramid(p, eBoundary);
 	}
-	return nullptr;
 }
 ConvexHull3D& ConvexHull3D::operator=(const ConvexHull3D& rhs)
 {
@@ -303,7 +301,7 @@ void ConvexHull3D::Build(const vector<Vector3D>& input)
 		{
 			if (i != usedPoints[0] && i != usedPoints[1] && i != usedPoints[2] && i != usedPoints[3])
 			{
-				Vertex* v = this->AddPoint(input[i],i);
+				this->AddPoint(input[i],i);
 			}
 		}
 	}
