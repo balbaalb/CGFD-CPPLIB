@@ -33,6 +33,7 @@
 #include "Node.h"
 #include "NodeComposite.h"
 #include "FVM_Grid.h"
+#include "ConductionConvectionProblem.h"
 #include "FVM.h"
 #include "BitMap.h"
 void Tester()
@@ -232,6 +233,12 @@ void Tester()
 		if (!correct)
 			return;
 		//---------------------------------------------------------------------------------
+		std::cout << std::endl << "ConductionConvectionProblem test ...";
+		correct = tester_ConductionConvectionProblem(NumTests);//+2
+		std::cout << (correct ? "okay!" : "ERROR!");
+		if (!correct)
+			return;
+		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "FVM test ...";
 		correct = tester_FVM(NumTests);//+17
 		std::cout << (correct ? "okay!" : "ERROR!");
@@ -244,7 +251,7 @@ void Tester()
 		if (!correct)
 			return;
 		//---------------------------------------------------------------------------------
-		if (NumTests < 138)
+		if (NumTests < 140)
 		{
 			std::cout << std::endl << "SOME TESTS ARE BYPASSED!!!!";
 		}

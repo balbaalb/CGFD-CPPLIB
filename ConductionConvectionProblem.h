@@ -34,11 +34,12 @@ public:
 
 class convectionConstVelocity : public ConductionConvectionProblem
 {
-	double T0{0}, T1{1}, constVx{0}, constVy{0}, Lx{1}, Ly{1};
-	double kapa{1};//conductivity / density
+	double T0{0}, T1{1}, constVx{0}, constVy{0}, Lx{1}, Ly{1}, y0{0}/*used only for kappa = 0*/;
+	double kappa{1};//conductivity / density
+	double Amax {0};
 public:
 	convectionConstVelocity() = default;
-	convectionConstVelocity(double T0_, double T1_, double vx_, double vy_, double Lx_, double Ly_, double kinematic_diffusivity);
+	convectionConstVelocity(double T0_, double T1_, double vx_, double vy_, double Lx_, double Ly_, double kinematic_diffusivity, double y0_ = 0);
 	virtual double T(double x, double y, double z) const;
 	virtual double T(const Vector3D& P) const;
 	virtual double vx(double x, double y, double z = 0) const;
@@ -87,3 +88,5 @@ public:
 	virtual double vy(const Vector3D& P) const;
 };
 
+bool tester_ConductionConvectionProblem(int& NumTests);
+bool tester_convectionConstVelocity(int& NumTests);
