@@ -101,4 +101,5 @@ bool tester_FVM_8(int& NumTests);// tester_FVM_2 using the cell_based FVM.
 bool tester_FVM_9(int& NumTests);// tester_FVM_3 using the cell_based FVM and TVD.
 bool tester_FVM_10(int& NumTests);// SIMPLE, Lid driven cavity using co-located cell-based FVM: Qualitative checking
 bool tester_FVM_11(int& NumTests);
+bool tester_FVM_12(int& NumTests);//tester_FVM_3 for high and low values of k.
 #endif

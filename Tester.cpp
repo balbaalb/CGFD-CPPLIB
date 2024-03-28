@@ -240,7 +240,7 @@ void Tester()
 			return;
 		//---------------------------------------------------------------------------------
 		std::cout << std::endl << "FVM test ...";
-		correct = tester_FVM(NumTests);//+17
+		correct = tester_FVM(NumTests);//+18
 		std::cout << (correct ? "okay!" : "ERROR!");
 		if (!correct)
 			return;
@@ -251,9 +251,10 @@ void Tester()
 		if (!correct)
 			return;
 		//---------------------------------------------------------------------------------
-		if (NumTests < 140)
+		int Expected_Num_Tests = 141;
+		if (NumTests < Expected_Num_Tests)
 		{
-			std::cout << std::endl << "SOME TESTS ARE BYPASSED!!!!";
+			std::cout << std::endl  << Expected_Num_Tests - NumTests << " TESTS ARE BYPASSED!!!!";
 		}
 		else
 		{
