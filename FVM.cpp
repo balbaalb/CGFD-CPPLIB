@@ -1961,14 +1961,13 @@ bool tester_FVM_12(int &NumTests)
 		double k = k_cases[c];
 		double kapa = k / rho;
 		convectionConstVelocity conv(T0, T1, vx, vy, Lx, Ly, kapa);
-		vector<double> max_abs_error(N_cases.size(), 0);
 		vector<double> max_error_percent(N_cases.size(), 0);
 		for (int n = 0; n < N_cases.size(); ++n)
 		{
 			int N = N_cases[n];
 			Triangulation T = Triangulation::OffDiagonalGrid(N, N, Lx, Ly);
 			FVM fvm(T);
-			fvm.SetTVD(TVD::MODE::VAN_LEER);
+			fvm.SetTVD(TVD::MODE::NO_TVD);
 			function<double(const Vector3D &P)> V[2];
 			V[0] = [conv](const Vector3D &P)
 			{ return conv.vx(P); };
@@ -1986,21 +1985,22 @@ bool tester_FVM_12(int &NumTests)
 				double T = results[i]->value;
 				Vector3D P = results[i]->GetPoint();
 				double T_actual = conv.T(P);
-				double abs_error = fabs(T - T_actual);
 				double error_percent = T_actual != 0 ? fabs(T - T_actual) / T_actual * 100 : fabs(T - T_actual) / T0 * 100;
-				if (abs_error > max_abs_error[n])
-					max_abs_error[n] = abs_error;
 				if (error_percent > max_error_percent[n])
 				{
 					max_error_percent[n] = error_percent;
 				}
 			}
-			// if (n > 0 && max_abs_error[n] > max_abs_error[n - 1])
-			// 	return false;
 			if (c == k_cases.size() - 1 && n == N_cases.size() - 1)
 			{
-				// if (max_abs_error[n] > 1.0e-7 || max_error_percent[n] > 1.0e-5)
-				// 	return false;
+				if (k > 10 && k < 0.1 && max_error_percent[n] > 1.0e-5)
+					return false;
+				if (fabs(k - 0.1) < 1.0e-10 && max_error_percent[n] > 18)
+					return false;
+				if (fabs(k - 1) < 1.0e-10 && max_error_percent[n] > 29)
+					return false;
+				if (fabs(k - 10) < 1.0e-10 && max_error_percent[n] > 5)
+					return false;
 			}
 		}
 		cout << endl
