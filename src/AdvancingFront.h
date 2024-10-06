@@ -63,15 +63,4 @@ public:
 	static bool AdvanceOneStep;
 	static Triangulation Tessellate(const vector<Vector3D>& BoundaryPoints);
 };
-bool tester_AdvancingFront(int& NumTests);
-bool tester_AdvancingFront_1(int& NumTests);
-bool tester_AdvancingFront_2(int& NumTests);
-bool tester_AdvancingFront_3(int& NumTests);
-bool tester_AdvancingFront_4(int& NumTests);
-bool tester_AdvancingFront_5(int& NumTests);
-bool tester_AdvancingFront_6(int& NumTests);
-bool tester_AdvancingFront_7(int& NumTests);
-bool tester_AdvancingFront_8(int& NumTests);
-bool tester_AdvancingFront_9(int& NumTests);
-bool tester_AdvancingFront_10(int& NumTests);//Triangle
 #endif

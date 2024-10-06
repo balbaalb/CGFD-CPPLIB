@@ -1,7 +1,7 @@
 #include <iostream>
 #include "Tester.h"
-#include "../src/MathUtils.h"
-#include "../src/bMatrix.h"
+#include "test_MathUtils.h"
+#include "test_bMatrix.h"
 #include "../src/Vector.h"
 #include "../src/Vector3D.h"
 #include "../src/SquareMatrix.h"
@@ -27,7 +27,7 @@
 #include "../src/bPolygon.h"
 #include "../src/WeatherillHassan.h"
 #include "../src/RuppertShewchuk.h"
-#include "../src/AdvancingFront.h"
+#include "Test_AdvancingFront.h"
 #include "../src/ShapeFunction.h"
 #include "../src/bGrid.h"
 #include "../src/Node.h"

@@ -50,5 +50,4 @@ public:
 	static void SetErrorTolerance(double errTol);
 	static double GetErrorTolerance();
 };
-bool tester_bMatrix(int& NumTests);
 #endif
