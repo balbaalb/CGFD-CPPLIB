@@ -1,8 +1,4 @@
-0.CMD.bat
-AdvancedTests.cpp
-GdiplusStartup.txt
-LearningBoard.cpp
-LearningBoard.h
+*.bat
 .vs
 .vscode/*.*
 *.exe
