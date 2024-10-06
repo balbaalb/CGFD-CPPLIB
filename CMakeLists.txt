@@ -1,6 +1,5 @@
 project(CGFD)
 set(CMAKE_CXX_STANDARD 17)
 file(GLOB SOURCES "*.cpp")
-add_executable(CGFD ${SOURCES})
-
-
+add_library(CGFD STATIC ${SOURCES})
+add_executable(CGFD_tester ${SOURCES})
