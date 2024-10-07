@@ -26,5 +26,4 @@ public:
 	int tangent(const Vector3D& point, Line* t1 = 0, Line* t2 = 0) const;
 	bool isInside(const Vector3D& p, double tolerance = 1.0e-10) const;//if on the circle will return false
 };
-bool tester_Circle(int& NumTests);
 #endif

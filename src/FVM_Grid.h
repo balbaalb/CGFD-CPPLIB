@@ -95,14 +95,4 @@ public:
 	void printEquations(string fileName, int iterNum);
 	void printThermalEquations(string fileName);
 };
-bool tester_FVM_Grid(int& NumTests);
-bool tester_FVM_Grid_1(int& NumTests);
-bool tester_FVM_Grid_2(int& NumTests);
-bool tester_FVM_Grid_3(int& NumTests);
-bool tester_FVM_Grid_7(int& NumTests);//lid-driven cavity
-bool tester_FVM_Grid_9(int& NumTests);//Convective lid-driven cavity
-bool tester_FVM_Grid_10(int& NumTests);//RBC Box
-bool tester_FVM_Grid_11(int& NumTests);//test # 1 with Neumann's boundary condition
-bool tester_FVM_Grid_12(int& NumTests);//test # 10 , infinitely extended RBC.
-bool tester_FVM_Grid_13(int& NumTests);//Conduction-convection using TVD (based on tester_FVM_Grid_3)
 #endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef QuadEdgeIndexH
+#define QuadEdgeIndexH
 #include <unordered_map>
 #include <vector>
 using namespace std;
@@ -24,4 +25,4 @@ public:
 	int GetIndex(Face* f);
 	int GetIndex(Edge* e);
 };
-bool tester_QuadEdgeIndex(int& NumTests);
+#endif

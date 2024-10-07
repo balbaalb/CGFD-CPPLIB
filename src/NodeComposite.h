@@ -105,5 +105,4 @@ public:
 	bool IsInitialized() const;
 	bool IsConstValue(GeoGraphObject* objPtr);
 };
-bool tester_NodeComposite(int& NumTests);
 #endif

@@ -19,10 +19,4 @@ public:
 	bool CanUse_GaussSeidel(bool fixRoundOffError = false);
 	Vector Solve(const Vector& B, METHOD method = METHOD::GAUSS_ELIMINATION) const;
 };
-bool tester_SquareMatrix(int& NumTests);
-bool tester_SquareMatrix_1(int& NumTests);
-bool tester_SquareMatrix_2(int& NumTests);
-bool tester_SquareMatrix_3(int& NumTests);
-bool tester_SquareMatrix_4(int& NumTests);
-bool tester_SquareMatrix_5(int& NumTests);
 #endif

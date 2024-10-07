@@ -37,5 +37,4 @@ public:
 	Edge* GetNext();//Get the next Edge without changing in the iterator
 	Edge* GetPrev();//Get the prev Edge without changing in the iterator
 };
-bool tester_EdgeIterator(int& NumTests);
 #endif

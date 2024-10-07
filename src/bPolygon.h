@@ -54,13 +54,4 @@ public:
 	bool isOnOrInside(const Vector3D& p) const;//O(n)
 	bool TestIntegrity();
 };
-bool tester_bPolygon(int& NumTests);
-bool tester_bPolygon_1(int& NumTests);
-bool tester_bPolygon_2(int& NumTests);
-bool tester_bPolygon_3(int& NumTests);
-bool tester_bPolygon_4(int& NumTests);
-bool tester_bPolygon_5(int& NumTests);
-bool tester_bPolygon_6(int& NumTests);
-bool tester_bPolygon_7(int& NumTests);
-bool tester_bPolygon_8(int& NumTests);
 #endif

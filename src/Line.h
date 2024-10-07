@@ -25,5 +25,4 @@ public:
 	bool operator!=(const Line& L2) const;
 	//Note: Do NOT create Line(const Vector3D& P) 
 };
-bool tester_Line(int& NumTests);
 #endif

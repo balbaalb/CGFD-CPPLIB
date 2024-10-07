@@ -23,5 +23,4 @@ public:
 	bool IsPerpendicular(const Vector& L) const;
 	double distance(const Vector& L) const;
 };
-bool tester_Vector(int& NumTests);
 #endif

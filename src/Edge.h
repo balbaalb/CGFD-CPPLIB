@@ -92,5 +92,4 @@ public:
 	EdgeBasic();
 	Edge* Clone() const;
 };
-bool tester_Edge(int& NumTests);
 #endif

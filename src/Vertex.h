@@ -43,5 +43,4 @@ public:
 	VertexBasic(const Vector3D& v);
 	Vertex* Clone() const;
 };
-bool tester_Vertex(int& NumTests);
 #endif

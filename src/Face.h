@@ -33,5 +33,4 @@ public:
 	FaceBasic();
 	Face* Clone() const;
 };
-bool tester_Face(int& NumTests);
 #endif

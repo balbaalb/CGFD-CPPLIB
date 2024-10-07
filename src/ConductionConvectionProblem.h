@@ -87,6 +87,3 @@ public:
 	virtual double vy(double x, double y, double z = 0) const;
 	virtual double vy(const Vector3D& P) const;
 };
-
-bool tester_ConductionConvectionProblem(int& NumTests);
-bool tester_convectionConstVelocity(int& NumTests);

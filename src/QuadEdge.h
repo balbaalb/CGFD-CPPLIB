@@ -113,12 +113,4 @@ public:
 };
 ostream& operator<<(ostream& out, QuadEdge& qe);
 istream& operator>>(istream& in, QuadEdge& qe);
-bool tester_QuadEdge(int& NumTests);
-bool tester_QuadEdge_1(int& NumTests);
-bool tester_QuadEdge_Tetrahedron(QuadEdge& Tetrahedron, Vertex* v[4], Face* f[4], Edge* e[4], vector<Vector3D>& points);
-bool tester_QuadEdge_2(int& NumTests);
-bool tester_QuadEdge_Pyramid(int& NumTests);
-bool tester_QuadEdge_SetAsDoubleTriangulatedSquare(int& NumTests);
-bool tester_QuadEdge_3(int& NumTests);
-bool tester_QuadEdge_4(int& NumTests);//test write to and read from a file
 #endif

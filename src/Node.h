@@ -49,5 +49,4 @@ public:
 	NodeTV(const NodeTV& rhs);
 	NodeTV& operator=(const NodeTV& rhs);
 };
-bool tester_Node(int& NumTests);
 #endif

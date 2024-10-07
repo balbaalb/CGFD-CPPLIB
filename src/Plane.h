@@ -36,6 +36,5 @@ public:
 	double distance(const Line& L) const;
 	double distance(const Plane& P) const;
 };
-bool tester_Plane(int& NumTests);
 #endif
 

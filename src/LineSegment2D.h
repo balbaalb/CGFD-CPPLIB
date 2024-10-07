@@ -29,8 +29,4 @@ public:
 	bool operator!=(const LineSegment2D& rhs) const;
 	POINT_LINESEGMENT2D_RELATION GetRelationTo(const Vector3D& p) const;
 };
-bool tester_LineSegment2D(int& NumTests);
-bool tester_LineSegment2D_1(int& NumTests);
-bool tester_LineSegment2D_2(int& NumTests);
-bool tester_LineSegment2D_3(int& NumTests);
 #endif

@@ -23,5 +23,4 @@ public:
 	static double RotationAngle_z(const Vector3D& A, const Vector3D& B, const Vector3D& C);//theta of rotation AB about B to be oriented along BC
 	static double GetAngle(const Vector3D& A, const Vector3D& B, const Vector3D& C);//the ABC angle < pi
 };
-bool tester_Vector3D(int& NumTests);
 #endif

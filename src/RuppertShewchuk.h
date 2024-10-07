@@ -33,18 +33,4 @@ public:
 	static Triangulation Tessellate(const vector<Vector3D>& BoundaryPoints, int maxIter);
 	static Triangulation Tessellate(const TriangulationInput& input, int maxIter);
 };
-bool tester_RuppertShewchuk(int& NumTests);
-bool tester_RuppertShewchuk_1(int& NumTests);
-bool tester_RuppertShewchuk_2(int& NumTests);
-bool tester_RuppertShewchuk_3(int& NumTests);
-bool tester_RuppertShewchuk_4(int& NumTests);
-bool tester_RuppertShewchuk_5(int& NumTests);//constrained Delaunay triangulation
-bool tester_RuppertShewchuk_6(int& NumTests);//constrained Delaunay triangulation 
-bool tester_RuppertShewchuk_7(int& NumTests);
-bool tester_RuppertShewchuk_8(int& NumTests);//Shewchuk 2002 examole on page  748
-bool tester_RuppertShewchuk_9(int& NumTests);//Inside RuppertShewchuk_AdvancedTests.cpp
-bool tester_RuppertShewchuk_10(int& NumTests);//A Triangle
-bool tester_RuppertShewchuk_11(int& NumTests);//A very sharp Triangle //shows an unfixed bug
-bool tester_RuppertShewchuk_12(int& NumTests);//Gosper Island
-bool tester_RuppertShewchuk_13(int& NumTests);//annular region finned
 #endif

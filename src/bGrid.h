@@ -46,5 +46,4 @@ public:
 	GRID_DIRECTION WhichBoundary(Vertex* v);
 	Edge* GetOppositeEdge(Edge* e, Face* f);
 };
-bool tester_bGrid(int& NumTests);
 #endif

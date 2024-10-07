@@ -25,5 +25,4 @@ public:
 	Vertex* GetPrev();//Get the prev Vertex without changing in the iterator //NEEDS TESTING 
 	Vertex* GetReported();
 };
-bool tester_VertexIterator(int& NumTests);
 #endif

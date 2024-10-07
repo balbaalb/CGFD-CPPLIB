@@ -36,5 +36,4 @@ public:
 	EdgeContainer* FindContainer(Edge* e);
 	void MoveToEnd(EdgeContainer* E);
 };
-bool tester_EdgeList(int& NumTests);
 #endif

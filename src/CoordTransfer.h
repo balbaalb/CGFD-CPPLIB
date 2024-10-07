@@ -25,5 +25,4 @@ public:
 	Vector3D OriginalToNew(const Vector3D& p0) const;
 	Vector3D NewToOriginal(const Vector3D& p1) const;
 };
-bool tester_CoordTransfer(int& NumTests);
 #endif

@@ -34,15 +34,4 @@ public:
 		const vector<TriangulationConstraint>& Constraints);
 	static Triangulation Triangulate(const TriangulationInput& input);
 };
-bool tester_DelaunayLifting(int& NumTests);
-bool tester_DelaunayLifting_1(int& NumTests);
-bool tester_DelaunayLifting_2(int& NumTests);
-bool tester_DelaunayLifting_3(int& NumTests);
-bool tester_DelaunayLifting_4(int& NumTests);
-bool tester_DelaunayLifting_5(int& NumTests);
-bool tester_DelaunayLifting_6(int& NumTests);
-bool tester_DelaunayLifting_7(int& NumTests);
-bool tester_DelaunayLifting_8(int& NumTests);//constrained Delaunay Triangulation
-bool tester_DelaunayLifting_9(int& NumTests);//bug revealling case
-bool tester_DelaunayLifting_10(int& NumTests);//Shewchuk 2002 examole on page  748
 #endif

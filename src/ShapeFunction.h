@@ -29,7 +29,4 @@ public:
 	double GetValue(int i, const Vector3D& P) const;
 	Vector3D Grad(int i, const Vector3D& P) const;
 };
-bool tester_ShapeFunction(int& NumTests);
-bool tester_ShapeFunction_1(int& NumTests);
-bool tester_ShapeFunction_2(int& NumTests);
 #endif

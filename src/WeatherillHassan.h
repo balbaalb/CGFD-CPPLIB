@@ -45,9 +45,4 @@ public:
 	uniformly and thus the min scale of boundary points is taken as a constant length scale for all later nodes being inserted.
 	*/
 };
-bool test_WeatherillHassan(int& NumTests);
-bool test_WeatherillHassan_1(int& NumTests);
-bool test_WeatherillHassan_2(int& NumTests);
-bool test_WeatherillHassan_3(int& NumTests);
-bool test_WeatherillHassan_4(int& NumTests);//Triangle
 #endif

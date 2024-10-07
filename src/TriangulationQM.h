@@ -69,7 +69,4 @@ public:
 	double GetAvgVelDotEdge(function<double(const Vector3D& P)> V[2], double& minVal, double& maxVal, double& piVal);
 	static bool ShiftPointsRandomly(Triangulation* T);//for now, only works for square domains
 };
-bool tester_TriangulationQM(int& NumTests);
-bool tester_TriangulationQM_1(int& NumTests);//testing shape factor
-bool tester_TriangulationQM_2(int& NumTests);//testing ShiftPoints() and some other functions
 #endif

@@ -21,5 +21,4 @@ public:
 	~FaceIterator();
 	Face* Next();
 };
-bool tester_FaceIterator(int& NumTests);
 #endif

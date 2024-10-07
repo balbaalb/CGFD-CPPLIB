@@ -29,5 +29,4 @@ public:
 	double GetPiAngles() const;
 	double GetIncircleRadius() const;
 };
-bool tester_Triangle(int& NumTests);
 #endif

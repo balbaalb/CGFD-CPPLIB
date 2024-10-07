@@ -63,11 +63,4 @@ public:
 	int GetEdgeVisibiliy(int i) const;
 	bool TestConvexity() const;
 };
-bool tester_ConvexHull3D(int& NumTests);
-bool tester_ConvexHull3D_1(int& NumTests);
-bool tester_ConvexHull3D_2(int& NumTests);
-bool tester_ConvexHull3D_PyramidToCube(int& NumTests);
-bool tester_ConvexHull3D_3(int& NumTests);
-bool tester_ConvexHull3D_Icosahedron(int& NumTests);
-bool tester_ConvexHull3D_Dodecahedron(int& NumTests);
 #endif

@@ -84,22 +84,4 @@ public:
 	void SetAlphaP(double value);
 	void SetalphaV(double value);
 };
-bool tester_FVM(int& NumTests); //tester_FVM_6 has errors !!!!!!!!!!!!!!!!!!!!!!!!
-bool tester_FVM_1(int& NumTests);//conduction Rectangular 2 x 2
-bool tester_FVM_2(int& NumTests);//conduction Rectangular 20 x 20
-bool tester_FVM_3(int& NumTests);//conduction-convection Rectangular 20 x 20
-bool tester_FVM_4(int& NumTests);//conduction-convection Rectangular 10 x 10, Baliga & Patankar 1980 Example 1 Case 1
-bool tester_FVM_5(int& NumTests);//conduction-convection Rectangular 10 x 10, Baliga & Patankar 1980 Example 1 Case 2
-bool tester_FVM_6(int& NumTests);//conduction-convection Rectangular 10 x 10, Baliga & Patankar 1980 Example 2
-bool tester_FVM_6a(int& NumTests, vector<double>* verticalCenterlineResults = 0);
-bool tester_FVM_6b(int& NumTests, vector<double>* verticalCenterlineResults = 0);
-bool tester_FVM_6c(int& NumTests, vector<double>* verticalCenterlineResults = 0);
-bool tester_FVM_6d(int& NumTests, vector<double>* verticalCenterlineResults = 0);
-bool tester_FVM_6e(int& NumTests, vector<double>* verticalCenterlineResults = 0);
-bool tester_FVM_7(int& NumTests);// tester_FVM_1 using the cell_based FVM.
-bool tester_FVM_8(int& NumTests);// tester_FVM_2 using the cell_based FVM.
-bool tester_FVM_9(int& NumTests);// tester_FVM_3 using the cell_based FVM and TVD.
-bool tester_FVM_10(int& NumTests);// SIMPLE, Lid driven cavity using co-located cell-based FVM: Qualitative checking
-bool tester_FVM_11(int& NumTests);
-bool tester_FVM_12(int& NumTests);//tester_FVM_3 for high and low values of k.
 #endif

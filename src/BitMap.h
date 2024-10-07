@@ -40,6 +40,5 @@ namespace bBitMap
 		bool GenerateBMP(std::string bmpFileName);
 	};
 }
-bool tester_BitMap(int& numTests);
 #endif
 

@@ -100,19 +100,4 @@ public:
 };
 ostream& operator<<(ostream& out, Triangulation& T);
 istream& operator>>(istream& in, Triangulation& T);
-bool tester_Triangulation(int& NumTests);
-bool tester_Triangulation_1(int& NumTests);
-bool tester_Triangulation_1_0(int& NumTests, Triangulation& T, vector<Vector3D>& input);
-bool tester_Triangulation_1_1(int& NumTests, Triangulation& T, vector<Vector3D>& input);
-bool tester_Triangulation_1_2(int& NumTests, Triangulation& T, vector<Vector3D>& input);
-bool tester_Triangulation_1_3(int& NumTests, Triangulation& T, vector<Vector3D>& input);
-bool tester_Triangulation_1_4(int& NumTests, Triangulation& T, vector<Vector3D>& input);
-bool tester_Triangulation_1_5(int& NumTests, Triangulation& T, vector<Vector3D>& input);
-bool tester_Triangulation_1_6(int& NumTests, Triangulation& T, vector<Vector3D>& input);
-bool tester_Triangulation_2(int& NumTests);
-bool tester_Triangulation_3(int& NumTests);
-bool tester_Triangulation_4(int& NumTests);
-bool tester_Triangulation_5(int& NumTests);
-bool tester_Triangulation_6(int& NumTests);
-bool tester_Triangulation_7(int& NumTests);
 #endif 
