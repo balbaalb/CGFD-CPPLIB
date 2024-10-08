@@ -1,4 +1,4 @@
 #ifndef TesterH
 #define TesterH
-void Tester();
+int Tester();
 #endif
