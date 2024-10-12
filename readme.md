@@ -1,6 +1,6 @@
 The codes in this repository are results of a self-educational workshop for my learning on 
 C++, computational geometry and finite volume method. So, it provides a library for: 
--  Triangulation of a domain using different Delaunay triangulation methods. Various quality measures for such triangulations is provided as well. The triangulations are stored in Quad-Edge structure.
+-  Triangulation of a domain using different Delaunay triangulation methods. Various quality measures for such triangulations are provided as well. The triangulations are stored in Quad-Edge structure.
 -  Solving conduction-convection, or full Navier-Stokes equations on such triangulations employing finite volume method. Both vertex-based and cell-based schemes are available. 
 
 To see references and explanation please refer to 
